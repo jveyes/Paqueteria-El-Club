@@ -1,0 +1,1138 @@
+# ========================================
+# PAQUETES EL CLUB v3.0 - Cursor Rules
+# ========================================
+
+## 🎯 **OBJETIVO DEL PROYECTO**
+Sistema de gestión de paquetería con tarifas automáticas, notificaciones multicanal y dashboard administrativo. 
+Enfoque en modularidad, escalabilidad y mantenibilidad del código.
+
+## 🏗️ **ARQUITECTURA Y PATRONES**
+
+### **Principios de Diseño**
+- **Separación de Responsabilidades**: Cada módulo tiene una responsabilidad específica
+- **Inversión de Dependencias**: Los routers dependen de servicios, no de modelos directamente
+- **Configuración Centralizada**: Todas las configuraciones en `src/config.py`
+- **Manejo de Errores Unificado**: Excepciones personalizadas en `src/utils/exceptions.py`
+- **Validaciones Centralizadas**: Funciones de validación en `src/utils/validators.py`
+
+### **Estructura de Capas**
+1. **Routers** (`src/routers/`): Manejo de HTTP requests/responses
+2. **Servicios** (`src/services/`): Lógica de negocio
+3. **Modelos** (`src/models/`): Entidades de base de datos
+4. **Esquemas** (`src/schemas/`): Validación de datos con Pydantic
+5. **Utilidades** (`src/utils/`): Funciones helper y validaciones
+6. **Configuración** (`src/config.py`): Variables de entorno centralizadas
+
+## 🐍 **PYTHON / FASTAPI**
+
+### **Convenciones de Código**
+- **PEP 8**: Seguir estándares de Python
+- **Type Hints**: Usar siempre type hints en funciones y métodos
+- **Docstrings**: Documentar todas las funciones públicas
+- **Nombres Descriptivos**: Variables y funciones con nombres claros
+- **Imports Organizados**: Agrupar imports por tipo (stdlib, third-party, local)
+
+### **FastAPI Específico**
+- **Dependency Injection**: Usar `Depends()` para inyección de dependencias
+- **Response Models**: Definir siempre modelos de respuesta con Pydantic
+- **Status Codes**: Usar códigos HTTP apropiados
+- **Async/Await**: Usar async para operaciones I/O
+- **Exception Handling**: Manejar excepciones con handlers personalizados
+
+### **Ejemplo de Router**
+```python
+@router.post("/", response_model=PackageResponse)
+async def create_package(
+    package_data: PackageCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> PackageResponse:
+    """Crear nuevo paquete con validaciones y notificaciones"""
+    package_service = PackageService(db)
+    return package_service.create_package(package_data)
+```
+
+## 🗄️ **SQLALCHEMY / BASE DE DATOS**
+
+### **Convenciones de Modelos**
+- **Herencia de BaseModel**: Todos los modelos heredan de `BaseModel`
+- **Herencia de Base**: Todos los modelos DEBEN heredar también de `Base` para SQLAlchemy
+- **Relaciones Explícitas**: Definir todas las relaciones con `relationship()`
+- **Índices**: Crear índices para campos de búsqueda frecuente
+- **Constraints**: Usar constraints de base de datos apropiados
+- **Timestamps**: Incluir `created_at` y `updated_at` automáticamente
+
+### **Configuración de Modelos**
+- **Estructura correcta**: `class ModelName(BaseModel, Base):`
+- **Timestamps automáticos**: Usar `default=datetime.utcnow` para `created_at`
+- **Timestamps de actualización**: Usar `onupdate=datetime.utcnow` para `updated_at`
+- **Verificar herencia**: Confirmar que todos los modelos heredan de ambas clases base
+
+### **Ejemplo de Modelo**
+```python
+class Package(BaseModel, Base):
+    __tablename__ = "packages"
+    
+    tracking_number = Column(String(50), unique=True, nullable=False, index=True)
+    status = Column(Enum(PackageStatus), default=PackageStatus.ANUNCIADO)
+    
+    # Relaciones
+    notifications = relationship("Notification", back_populates="package")
+    
+    def __repr__(self):
+        return f"<Package {self.tracking_number} - {self.status}>"
+```
+
+### **Migrations (Alembic)**
+- **Nombres Descriptivos**: Usar nombres que describan el cambio
+- **Rollback Seguro**: Siempre implementar `downgrade()`
+- **Datos de Prueba**: Incluir datos de prueba en migraciones cuando sea apropiado
+
+### **Verificación de Migraciones**
+- **SIEMPRE verificar estado de migraciones antes de diagnosticar problemas de base de datos**
+- **Comprobar que las migraciones estén aplicadas**: `alembic current` debe mostrar la última migración
+- **Verificar existencia de tablas**: Confirmar que las tablas existen antes de diagnosticar errores de modelo
+- **Aplicar migraciones pendientes**: Ejecutar `alembic upgrade head` si hay migraciones sin aplicar
+- **Verificar estructura de tablas**: Usar `\dt` y `\d table_name` para confirmar estructura correcta
+
+### **Diagnóstico de Base de Datos**
+- **Orden de verificación**:
+  1. Estado de migraciones (`alembic current`)
+  2. Existencia de tablas (`\dt`)
+  3. Estructura de tablas (`\d table_name`)
+  4. Logs de aplicación para errores específicos
+- **Problemas comunes a verificar**:
+  - Migraciones no aplicadas
+  - Modelos sin herencia de `Base`
+  - Campos sin valores por defecto
+  - Constraints violados
+
+## 🔧 **SERVICIOS DE NEGOCIO**
+
+### **Principios de Servicios**
+- **Lógica de Negocio**: Toda la lógica compleja va en servicios
+- **Transacciones**: Manejar transacciones de base de datos apropiadamente
+- **Validaciones**: Validar datos antes de procesar
+- **Notificaciones**: Enviar notificaciones después de operaciones exitosas
+- **Logging**: Registrar operaciones importantes
+
+### **Ejemplo de Servicio**
+```python
+class PackageService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.rate_service = RateService(db)
+        self.notification_service = NotificationService(db)
+    
+    def create_package(self, package_data: PackageCreate) -> Package:
+        # Validaciones
+        # Cálculos de tarifas
+        # Crear en BD
+        # Enviar notificaciones
+        # Retornar resultado
+```
+
+---
+
+## 📧 **SISTEMA DE NOTIFICACIONES MULTICANAL**
+
+### **Arquitectura de Notificaciones**
+- **Desacoplamiento**: Las notificaciones deben ser asíncronas
+- **Múltiples Canales**: Soporte para Email, SMS, WhatsApp
+- **Fallback**: Si falla un canal, intentar otro
+- **Idempotencia**: Evitar duplicados con message_id único
+- **Reintentos**: Implementar reintentos exponenciales
+- **Auditoría**: Guardar estado en tabla notifications_log
+
+### **Flujo de Notificaciones**
+```
+Evento de Negocio → NotificationEvent → Redis Queue → Notification Service → Channel Handlers
+```
+
+### **Implementación del Sistema**
+```python
+from enum import Enum
+from typing import Dict, Any
+import redis
+import json
+from datetime import datetime
+
+class NotificationChannel(Enum):
+    EMAIL = "email"
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    PUSH = "push"
+
+class NotificationEvent:
+    """Evento de notificación"""
+    def __init__(self, user_id: str, channel: NotificationChannel, template: str, data: Dict[str, Any]):
+        self.message_id = str(uuid.uuid4())
+        self.user_id = user_id
+        self.channel = channel
+        self.template = template
+        self.data = data
+        self.timestamp = datetime.utcnow()
+        self.retry_count = 0
+        self.max_retries = 3
+
+class NotificationService:
+    """Servicio de notificaciones multicanal"""
+    
+    def __init__(self, db: Session, redis_client: redis.Redis):
+        self.db = db
+        self.redis = redis_client
+        self.channel_handlers = {
+            NotificationChannel.EMAIL: EmailHandler(),
+            NotificationChannel.SMS: SMSHandler(),
+            NotificationChannel.WHATSAPP: WhatsAppHandler()
+        }
+    
+    def send_notification(self, event: NotificationEvent):
+        """Enviar notificación de forma asíncrona"""
+        # Emitir evento a la cola
+        self.redis.lpush('notification_queue', json.dumps(event.__dict__))
+        
+        # Log del evento
+        log_with_context(
+            f"Notification queued: {event.message_id}",
+            user_id=event.user_id,
+            trace_id=event.message_id
+        )
+    
+    def process_notification_queue(self):
+        """Procesar cola de notificaciones"""
+        while True:
+            # Obtener evento de la cola
+            event_data = self.redis.brpop('notification_queue', timeout=1)
+            if not event_data:
+                continue
+            
+            event = NotificationEvent(**json.loads(event_data[1]))
+            
+            try:
+                # Intentar enviar por canal principal
+                success = self.send_via_channel(event, event.channel)
+                
+                if not success and event.retry_count < event.max_retries:
+                    # Reintento con backoff exponencial
+                    event.retry_count += 1
+                    delay = 2 ** event.retry_count
+                    self.redis.lpush('notification_queue', json.dumps(event.__dict__))
+                    time.sleep(delay)
+                elif not success:
+                    # Fallback a canal alternativo
+                    self.send_fallback(event)
+                
+                # Registrar en auditoría
+                self.log_notification(event, success)
+                
+            except Exception as e:
+                log_with_context(
+                    f"Notification error: {str(e)}",
+                    user_id=event.user_id,
+                    trace_id=event.message_id
+                )
+    
+    def send_via_channel(self, event: NotificationEvent, channel: NotificationChannel) -> bool:
+        """Enviar notificación por canal específico"""
+        handler = self.channel_handlers.get(channel)
+        if not handler:
+            return False
+        
+        try:
+            return handler.send(event)
+        except Exception as e:
+            log_with_context(
+                f"Channel {channel.value} failed: {str(e)}",
+                user_id=event.user_id,
+                trace_id=event.message_id
+            )
+            return False
+    
+    def send_fallback(self, event: NotificationEvent):
+        """Enviar notificación por canal de respaldo"""
+        fallback_channels = {
+            NotificationChannel.SMS: NotificationChannel.EMAIL,
+            NotificationChannel.WHATSAPP: NotificationChannel.SMS,
+            NotificationChannel.EMAIL: NotificationChannel.SMS
+        }
+        
+        fallback_channel = fallback_channels.get(event.channel)
+        if fallback_channel:
+            self.send_via_channel(event, fallback_channel)
+    
+    def log_notification(self, event: NotificationEvent, success: bool):
+        """Registrar notificación en auditoría"""
+        notification_log = NotificationLog(
+            message_id=event.message_id,
+            user_id=event.user_id,
+            channel=event.channel.value,
+            template=event.template,
+            status="sent" if success else "failed",
+            retry_count=event.retry_count,
+            timestamp=event.timestamp
+        )
+        
+        self.db.add(notification_log)
+        self.db.commit()
+
+class EmailHandler:
+    """Manejador de notificaciones por email"""
+    
+    def send(self, event: NotificationEvent) -> bool:
+        # Implementar envío por email
+        # Usar templates Jinja2
+        # Configurar SMTP
+        pass
+
+class SMSHandler:
+    """Manejador de notificaciones por SMS"""
+    
+    def send(self, event: NotificationEvent) -> bool:
+        # Implementar envío por SMS
+        # Integrar con Twilio o similar
+        pass
+
+class WhatsAppHandler:
+    """Manejador de notificaciones por WhatsApp"""
+    
+    def send(self, event: NotificationEvent) -> bool:
+        # Implementar envío por WhatsApp
+        # Integrar con API de WhatsApp Business
+        pass
+```
+
+### **Modelo de Auditoría**
+```python
+class NotificationLog(BaseModel, Base):
+    __tablename__ = "notifications_log"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(String(36), unique=True, nullable=False, index=True)
+    user_id = Column(String(50), nullable=False, index=True)
+    channel = Column(String(20), nullable=False)
+    template = Column(String(100), nullable=False)
+    status = Column(String(20), nullable=False)  # sent, failed, retrying
+    retry_count = Column(Integer, default=0)
+    error_message = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    sent_at = Column(DateTime, nullable=True)
+    
+    def __repr__(self):
+        return f"<NotificationLog {self.message_id} - {self.status}>"
+```
+
+### **Templates de Notificaciones**
+```python
+from jinja2 import Template
+
+# Templates centralizados
+EMAIL_TEMPLATES = {
+    "package_created": Template("""
+    <h2>Paquete Creado Exitosamente</h2>
+    <p>Hola {{ user_name }},</p>
+    <p>Tu paquete con número de seguimiento <strong>{{ tracking_number }}</strong> ha sido creado.</p>
+    <p>Estado: {{ status }}</p>
+    <p>Tarifa: ${{ rate }}</p>
+    """),
+    
+    "password_reset": Template("""
+    <h2>Restablecimiento de Contraseña</h2>
+    <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
+    <a href="{{ reset_url }}">Restablecer Contraseña</a>
+    """)
+}
+
+SMS_TEMPLATES = {
+    "package_created": "Tu paquete {{ tracking_number }} ha sido creado. Estado: {{ status }}. Tarifa: ${{ rate }}",
+    "password_reset": "Tu código de restablecimiento es: {{ reset_code }}"
+}
+```
+
+## 🛡️ **SEGURIDAD Y VALIDACIÓN**
+
+### **Autenticación y Autorización**
+- **JWT Tokens**: Usar tokens JWT para autenticación
+- **Roles y Permisos**: Implementar sistema de roles (admin, operator, user)
+- **Password Hashing**: Usar bcrypt para hashing de contraseñas
+- **Rate Limiting**: Implementar límites de rate para APIs
+
+### **Validación de Datos**
+- **Pydantic Schemas**: Usar Pydantic para validación de entrada
+- **Validaciones Personalizadas**: Crear validadores específicos del dominio
+- **Sanitización**: Sanitizar datos de entrada
+- **Validaciones de Negocio**: Validar reglas de negocio en servicios
+
+### **Ejemplo de Validación**
+```python
+def validate_phone_number(phone: str) -> bool:
+    """Validar formato de número de teléfono colombiano"""
+    pattern = r'^(\+57\s?)?(3\d{2})\s?(\d{3})\s?(\d{4})$'
+    return bool(re.match(pattern, phone))
+```
+
+## 🐳 **DOCKER / CONTAINERS**
+
+### **Dockerfile**
+- **Multi-stage Builds**: Usar multi-stage para optimizar tamaño
+- **Security**: Ejecutar como usuario no-root
+- **Caching**: Optimizar capas para mejor caching
+- **Health Checks**: Incluir health checks apropiados
+
+### **Docker Compose**
+- **Networks**: Usar redes personalizadas para aislamiento
+- **Volumes**: Montar volúmenes para persistencia
+- **Environment Variables**: Usar archivos .env para configuración
+- **Dependencies**: Definir dependencias entre servicios
+
+## 📊 **OBSERVABILIDAD AVANZADA**
+
+### **Logging Estructurado**
+- **Correlación de Requests**: Cada petición debe tener un `trace_id` y `span_id` únicos
+- **Contexto de Usuario**: Incluir `user_id`, `role`, `ip_address` en logs de seguridad
+- **Structured Logging**: Usar formato JSON con campos estructurados
+- **Log Levels**: Usar niveles apropiados (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- **Log Rotation**: Configurar rotación automática (90 días de retención)
+- **Centralización**: Enviar logs a archivo centralizado con formato estructurado
+
+### **Ejemplo de Log Estructurado**
+```python
+import logging
+import uuid
+from datetime import datetime
+
+# Configurar logging estructurado
+logging.basicConfig(
+    level=logging.INFO,
+    format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "trace_id": "%(trace_id)s", "user_id": "%(user_id)s", "message": "%(message)s"}',
+    handlers=[
+        logging.FileHandler('logs/app.log'),
+        logging.StreamHandler()
+    ]
+)
+
+def log_with_context(message: str, user_id: str = None, trace_id: str = None):
+    """Log con contexto estructurado"""
+    extra = {
+        'trace_id': trace_id or str(uuid.uuid4()),
+        'user_id': user_id or 'anonymous',
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    logging.info(message, extra=extra)
+```
+
+### **Métricas de Negocio (SLIs)**
+- **Disponibilidad**: Uptime de APIs, % de respuestas 2xx vs errores
+- **Latencia**: Percentiles P50, P90, P99 por endpoint
+- **Uso de Recursos**: CPU, memoria, conexiones DB
+- **Métricas de Negocio**:
+  - Número de paquetes creados por hora
+  - Tarifas calculadas exitosamente
+  - Notificaciones enviadas vs fallidas
+  - Usuarios activos por día
+
+### **Implementación de Métricas**
+```python
+from prometheus_client import Counter, Histogram, Gauge
+
+# Métricas de negocio
+packages_created = Counter('packages_created_total', 'Total packages created')
+notifications_sent = Counter('notifications_sent_total', 'Total notifications sent', ['channel'])
+api_request_duration = Histogram('api_request_duration_seconds', 'API request duration')
+active_users = Gauge('active_users_total', 'Total active users')
+
+# Decorador para métricas automáticas
+def track_metrics(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        try:
+            result = func(*args, **kwargs)
+            api_request_duration.observe(time.time() - start_time)
+            return result
+        except Exception as e:
+            # Incrementar contador de errores
+            return result
+    return wrapper
+```
+
+### **Health Checks Avanzados**
+```python
+@router.get("/health")
+async def health_check():
+    """Health check completo con métricas"""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "3.1.0",
+        "checks": {
+            "database": check_database_connection(),
+            "redis": check_redis_connection(),
+            "email_service": check_email_service(),
+            "disk_space": check_disk_space(),
+            "memory_usage": check_memory_usage()
+        }
+    }
+    
+    # Si algún check falla, cambiar status
+    if any(not check["healthy"] for check in health_status["checks"].values()):
+        health_status["status"] = "unhealthy"
+        return JSONResponse(status_code=503, content=health_status)
+    
+    return health_status
+```
+
+### **Alertas y Monitoreo**
+- **Errores Críticos**: >5% de respuestas 5xx en 5 minutos
+- **Latencia**: P99 > 2s en endpoints críticos
+- **Disponibilidad DB**: Conexión fallida >3 intentos
+- **Notificaciones Fallidas**: Reintentos >10% en última hora
+- **Uso de Recursos**: CPU >80% sostenido 15 minutos
+
+### **Implementación de Alertas**
+```python
+class AlertManager:
+    """Gestor de alertas del sistema"""
+    
+    def __init__(self):
+        self.alert_thresholds = {
+            'error_rate': 0.05,  # 5%
+            'latency_p99': 2.0,  # 2 segundos
+            'cpu_usage': 0.80,   # 80%
+            'notification_failure_rate': 0.10  # 10%
+        }
+    
+    def check_error_rate(self, error_count: int, total_requests: int):
+        """Verificar tasa de errores"""
+        if total_requests > 0 and (error_count / total_requests) > self.alert_thresholds['error_rate']:
+            self.send_alert("HIGH_ERROR_RATE", f"Error rate: {error_count/total_requests:.2%}")
+    
+    def send_alert(self, alert_type: str, message: str):
+        """Enviar alerta"""
+        alert = {
+            "type": alert_type,
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat(),
+            "severity": "HIGH"
+        }
+        
+        # Log de alerta
+        logging.critical(f"ALERT: {alert}")
+        
+        # Enviar notificación (email, SMS, etc.)
+        self.notify_team(alert)
+```
+
+## 🎨 **FRONTEND / TEMPLATES**
+
+### **HTML/Templates**
+- **Semantic HTML**: Usar HTML semántico apropiado
+- **Accessibility**: Seguir estándares de accesibilidad (WCAG 2.1 AA)
+- **Responsive Design**: Diseño mobile-first
+- **SEO**: Optimizar para motores de búsqueda
+
+### **Estructura de Páginas (OBLIGATORIO)**
+- **Header Completo**: Todas las páginas deben incluir el mismo header con navegación completa
+- **Footer Sticky**: Todas las páginas deben incluir el mismo footer sticky (pegado al fondo)
+- **Ancho Completo**: Tanto el header como el footer deben tener ancho completo (full-width)
+- **Layout Base**: Todas las páginas deben extender `components/base.html`
+- **Consistencia**: Mantener la misma estructura visual en todas las páginas
+- **Navegación**: Incluir navegación completa en el sidebar
+- **Responsive**: Asegurar que header y footer funcionen en móviles
+
+### **Tailwind CSS**
+- **Utility Classes**: Usar clases de utilidad de Tailwind
+- **Custom Components**: Crear componentes reutilizables
+- **Responsive**: Usar breakpoints apropiados
+- **Dark Mode**: Preparar para modo oscuro
+
+### **HTMX**
+- **Progressive Enhancement**: Mejorar funcionalidad gradualmente
+- **Loading States**: Mostrar estados de carga
+- **Error Handling**: Manejar errores apropiadamente
+- **Validation**: Validación del lado cliente
+
+### **Alpine.js**
+- **Reactivity**: Usar reactividad para UI dinámica
+- **State Management**: Manejar estado del componente
+- **Event Handling**: Manejar eventos apropiadamente
+- **Performance**: Optimizar para rendimiento
+
+## 🧪 **TESTING**
+
+### **Unit Tests**
+- **Pytest**: Usar pytest como framework de testing
+- **Fixtures**: Crear fixtures reutilizables
+- **Mocking**: Mockear dependencias externas
+- **Coverage**: Mantener cobertura de código alta
+
+### **Integration Tests**
+- **Database Testing**: Tests con base de datos real
+- **API Testing**: Tests de endpoints completos
+- **Authentication Testing**: Tests de autenticación
+- **Error Scenarios**: Tests de casos de error
+
+### **Frontend Testing (REGLAS ESPECÍFICAS)**
+- **NO realizar pruebas visuales automáticas**: El usuario realizará verificación visual manual
+- **NO crear scripts de testing visual**: No automatizar pruebas de apariencia o diseño
+- **Solo crear pruebas técnicas cuando se solicite**: Crear scripts de prueba únicamente cuando el usuario solicite investigar problemas específicos
+- **Enfoque en debugging**: Las pruebas deben enfocarse en diagnosticar por qué algo no funciona, dónde se carga algo, o por qué ocurre un comportamiento específico
+- **Documentar problemas**: Cuando se identifiquen problemas técnicos, documentarlos en `TEST/reports/` con detalles de diagnóstico
+
+### **Documentación Automática de Pruebas**
+- **SCRIPTS/**: Todos los scripts de automatización, despliegue y pruebas deben guardarse en `SCRIPTS/`
+- **TEST/**: Todos los reportes, resultados y documentación de pruebas deben guardarse en `TEST/`
+- **Estructura Obligatoria**: Cada script o prueba debe documentarse con:
+  - Descripción del propósito
+  - Comandos de ejecución
+  - Resultados esperados
+  - Dependencias requeridas
+  - Fecha de creación/actualización
+
+### **Reglas de Documentación de Scripts**
+```bash
+# Estructura obligatoria para scripts en SCRIPTS/
+#!/bin/bash
+# ========================================
+# PAQUETES EL CLUB v3.0 - [Nombre del Script]
+# ========================================
+#
+# 🎯 OBJETIVO: Descripción del propósito
+# 📅 FECHA: YYYY-MM-DD
+# 👤 AUTOR: [Nombre del desarrollador]
+# 🔄 VERSIÓN: [Versión del script]
+#
+# 📋 USO:
+#   ./script-name.sh [parámetros]
+#
+# 📊 RESULTADOS:
+#   - Archivo de log: logs/script-name.log
+#   - Reporte: TEST/reports/script-name-report.md
+#   - Datos: TEST/results/script-name/
+#
+# ⚠️ DEPENDENCIAS:
+#   - [Lista de dependencias]
+#
+# ========================================
+```
+
+### **Reglas de Documentación de Pruebas**
+```markdown
+# Estructura obligatoria para reportes en TEST/reports/
+# ========================================
+# PAQUETES EL CLUB v3.0 - [Nombre de la Prueba]
+# ========================================
+#
+# 🎯 OBJETIVO: Descripción del objetivo de la prueba
+# 📅 FECHA: YYYY-MM-DD HH:MM:SS
+# 👤 EJECUTOR: [Nombre del ejecutor]
+# 🔄 VERSIÓN: [Versión del sistema probado]
+#
+# 📊 RESULTADOS:
+#   - Estado: ✅ PASS / ❌ FAIL
+#   - Tiempo de ejecución: XX.XX segundos
+#   - Errores encontrados: X
+#   - Advertencias: X
+#
+# 🔍 DETALLES:
+#   [Comandos ejecutados y resultados]
+#
+# 📈 MÉTRICAS:
+#   [Métricas de rendimiento y calidad]
+#
+# ✅ CONCLUSIONES:
+#   [Resumen y recomendaciones]
+#
+# ========================================
+```
+
+### **Ejemplo de Test**
+```python
+def test_create_package_success(db_session):
+    """Test crear paquete exitosamente"""
+    package_service = PackageService(db_session)
+    package_data = PackageCreate(...)
+    
+    result = package_service.create_package(package_data)
+    
+    assert result.tracking_number.startswith("PAP")
+    assert result.status == PackageStatus.ANUNCIADO
+```
+
+## 📝 **DOCUMENTACIÓN**
+
+### **Código**
+- **Docstrings**: Documentar todas las funciones públicas
+- **Type Hints**: Usar type hints para documentar tipos
+- **Comments**: Comentar lógica compleja
+- **README**: Mantener README actualizado
+
+### **API Documentation**
+- **OpenAPI/Swagger**: Documentación automática con FastAPI
+- **Examples**: Incluir ejemplos de uso
+- **Error Responses**: Documentar respuestas de error
+- **Authentication**: Documentar autenticación
+
+## 🚀 **DEPLOYMENT**
+
+### **Environment Configuration**
+- **Environment Variables**: Usar variables de entorno para configuración
+- **Secrets Management**: Manejar secretos apropiadamente
+- **Configuration Validation**: Validar configuración al inicio
+- **Feature Flags**: Usar feature flags para funcionalidades
+
+### **CI/CD**
+- **Automated Testing**: Tests automáticos en pipeline
+- **Code Quality**: Checks de calidad de código
+- **Security Scanning**: Escaneo de vulnerabilidades
+- **Automated Deployment**: Despliegue automático
+
+## 🔍 **DEBUGGING Y TROUBLESHOOTING**
+
+### **Logging**
+- **Structured Logs**: Logs estructurados para fácil parsing
+- **Context Information**: Incluir contexto relevante
+- **Error Tracking**: Integrar con sistema de tracking de errores
+- **Performance Logging**: Log de métricas de rendimiento
+
+### **Development Tools**
+- **Hot Reload**: Configurar hot reload para desarrollo
+- **Debug Mode**: Modo debug con información detallada
+- **Database Tools**: Herramientas para inspeccionar BD
+- **API Testing**: Herramientas para probar APIs
+
+## 📋 **CHECKLIST DE CALIDAD**
+
+### **Antes de Commit**
+- [ ] Tests pasan
+- [ ] Linting sin errores
+- [ ] Type checking sin errores
+- [ ] Documentación actualizada
+- [ ] Logs apropiados agregados
+- [ ] Manejo de errores implementado
+
+### **Antes de Deploy**
+- [ ] Tests de integración pasan
+- [ ] Performance tests pasan
+- [ ] Security scan limpio
+- [ ] Configuración validada
+- [ ] Backup configurado
+- [ ] Monitoring configurado
+
+---
+
+## 🚫 **REGLAS DE INTERVENCIÓN Y MODIFICACIÓN**
+
+### **Soluciones Temporales**
+- **SOLO crear soluciones temporales cuando el usuario lo solicite explícitamente**
+- **NO implementar parches o workarounds sin autorización**
+- **Documentar todas las modificaciones temporales con propósito y fecha de eliminación**
+- **Crear plan de limpieza para remover código temporal**
+
+### **Diagnóstico y Análisis**
+- **Consultar logs antes de modificar código**
+- **Proponer diagnóstico antes de implementar cambios**
+- **Usar scripts de testing existentes para identificar problemas**
+- **Analizar el contexto completo antes de sugerir modificaciones**
+
+### **Confirmación y Comunicación**
+- **Solicitar confirmación antes de cambios no solicitados**
+- **Explicar brevemente el propósito de cada modificación**
+- **Informar sobre el impacto potencial de los cambios**
+- **Proporcionar alternativas cuando sea apropiado**
+
+### **Consistencia y Estilo**
+- **Mantener SIEMPRE consistencia con el estilo del proyecto**
+- **Seguir las convenciones establecidas en el código existente**
+- **Respetar la arquitectura y patrones del proyecto**
+- **No introducir cambios que rompan la coherencia del sistema**
+
+## 📱 **ORIENTACIÓN MOBILE-FIRST**
+
+### **Diseño Responsivo**
+- **El proyecto es orientado a Mobile first**
+- **Diseñar primero para dispositivos móviles (320px - 768px)**
+- **Adaptar posteriormente para tablets (768px - 1024px)**
+- **Optimizar finalmente para desktop (1024px+)**
+
+### **Implementación Frontend**
+- **Usar breakpoints de Tailwind CSS apropiados para mobile-first**
+- **Priorizar la experiencia de usuario en dispositivos móviles**
+- **Optimizar formularios y navegación para touch**
+- **Asegurar que todos los elementos sean accesibles en pantallas pequeñas**
+
+### **Testing Mobile**
+- **Probar funcionalidad en dispositivos móviles reales**
+- **Verificar responsive design en diferentes tamaños de pantalla**
+- **Validar performance en conexiones móviles**
+- **Asegurar accesibilidad en dispositivos móviles**
+
+---
+
+## 🎯 **PRIORIDADES DE DESARROLLO**
+
+1. **Funcionalidad Core**: Paquetes, clientes, tarifas
+2. **Autenticación**: Sistema de usuarios y roles
+3. **Notificaciones**: Email y SMS
+4. **Dashboard**: Métricas y reportes
+5. **Optimización**: Performance y escalabilidad
+6. **Seguridad**: Hardening y auditoría
+7. **UX/UI**: Mejoras de interfaz
+8. **Integración**: APIs externas
+
+---
+
+## 📁 **ORGANIZACIÓN AUTOMÁTICA DE ARCHIVOS**
+
+### **Reglas de Organización Automática**
+- **SIEMPRE organizar archivos automáticamente** según su tipo y propósito
+- **Detectar patrones de nombres** y mover archivos a ubicaciones correctas
+- **Mantener estructura limpia** sin intervención manual
+- **Generar reportes** de organización automática
+
+### **Patrones de Archivos y Ubicaciones**
+
+#### **📂 Tests → `code/TEST/`**
+```
+Patrones:
+- test_*.py
+- *_test.py
+- test_*.html
+- *_test.html
+- test_*.sh
+- *_test.sh
+- test_*.js
+- *_test.js
+
+Ejemplos:
+- test_auth_system.py → code/TEST/
+- email_test.py → code/TEST/
+- test_focus.html → code/TEST/
+- api_test.sh → code/TEST/
+```
+
+#### **📂 Scripts → `code/SCRIPTS/`**
+```
+Patrones:
+- *.sh
+- *_script.py
+- setup_*.py
+- deploy_*.py
+- *_runner.py
+- *_automation.py
+- *_tool.py
+- *_helper.py
+
+Ejemplos:
+- deploy.sh → code/SCRIPTS/
+- setup_auth.py → code/SCRIPTS/
+- email_script.py → code/SCRIPTS/
+- backup_runner.py → code/SCRIPTS/
+```
+
+#### **📂 Deployment Docs → `docs/deployment-docs/`**
+```
+Patrones:
+- *_GUIDE.md
+- *_COMPLETADO.md
+- *_LIGHTSAIL.md
+- *_DEPLOYMENT.md
+- *_AWS.md
+- *_PRODUCTION.md
+- *_STAGING.md
+- *_ENVIRONMENT.md
+
+Ejemplos:
+- AWS_LIGHTSAIL_GUIDE.md → docs/deployment-docs/
+- DEPLOYMENT_COMPLETADO.md → docs/deployment-docs/
+- PRODUCTION_SETUP.md → docs/deployment-docs/
+```
+
+#### **📂 General Docs → `docs/`**
+```
+Patrones:
+- *_FIXES.md
+- *_SUMMARY.md
+- *_ANALISIS.md
+- *_SOLUTION.md
+- *_REPORT.md
+- *_DOCUMENTATION.md
+- *_README.md
+- *_CHANGELOG.md
+
+Ejemplos:
+- AUTH_SYSTEM_FIXES.md → docs/
+- EMAIL_SYSTEM_FIXES.md → docs/
+- MIGRATION_SUMMARY.md → docs/
+```
+
+#### **📂 Config Files → `code/config/`**
+```
+Patrones:
+- *.config
+- *.conf
+- env_*
+- config_*
+- settings_*
+- *_config.py
+- *_settings.py
+
+Ejemplos:
+- nginx.conf → code/config/
+- env.production → code/config/
+- app_config.py → code/config/
+```
+
+### **Script de Organización Automática**
+
+#### **Crear automáticamente el script de organización**
+```python
+# Ubicación: code/SCRIPTS/auto_organize_files.py
+# Propósito: Organizar archivos automáticamente según patrones
+# Ejecución: Automática al crear archivos o manualmente
+```
+
+#### **Reglas de Ejecución**
+- **Ejecutar automáticamente** cuando se detecte un archivo fuera de lugar
+- **Verificar estructura** cada vez que se cree un nuevo archivo
+- **Generar reportes** de organización en `code/TEST/reports/`
+- **Mantener logs** de organización en `code/logs/`
+
+### **Implementación de Organización**
+
+#### **Detección Automática**
+```python
+# Detectar archivos que necesitan organización
+def detect_files_for_organization():
+    patterns = {
+        'tests': ['test_*.py', '*_test.py', 'test_*.html'],
+        'scripts': ['*.sh', '*_script.py', 'setup_*.py'],
+        'deployment_docs': ['*_GUIDE.md', '*_COMPLETADO.md'],
+        'general_docs': ['*_FIXES.md', '*_SUMMARY.md'],
+        'config': ['*.config', 'env_*', 'config_*.py']
+    }
+    return patterns
+```
+
+#### **Mover Archivos Automáticamente**
+```python
+# Mover archivos a ubicaciones correctas
+def organize_files():
+    for file_path in detect_misplaced_files():
+        target_dir = get_target_directory(file_path)
+        move_file(file_path, target_dir)
+        log_organization(file_path, target_dir)
+```
+
+#### **Generar Reportes**
+```python
+# Generar reporte de organización
+def generate_organization_report():
+    report = {
+        'date': datetime.now(),
+        'files_moved': moved_files,
+        'structure_verified': True,
+        'recommendations': []
+    }
+    save_report('code/TEST/reports/file_organization_report.md', report)
+```
+
+### **Reglas de Validación**
+
+#### **Antes de Mover Archivos**
+- **Verificar que el archivo no esté en uso**
+- **Confirmar que el directorio destino existe**
+- **Validar que no haya conflictos de nombres**
+- **Crear directorios si no existen**
+
+#### **Después de Mover Archivos**
+- **Actualizar referencias en el código**
+- **Regenerar documentación si es necesario**
+- **Notificar cambios importantes**
+- **Mantener historial de movimientos**
+
+### **Comandos de Organización**
+
+#### **Organización Manual**
+```bash
+# Ejecutar organización manual
+cd code/SCRIPTS/
+python3 auto_organize_files.py
+
+# Verificar estructura
+python3 auto_organize_files.py --check
+
+# Generar reporte
+python3 auto_organize_files.py --report
+```
+
+#### **Organización Automática**
+```bash
+# Configurar hook de pre-commit
+# Configurar watcher de archivos
+# Configurar trigger en creación de archivos
+```
+
+### **Mantenimiento de Organización**
+
+#### **Verificación Periódica**
+- **Revisar estructura semanalmente**
+- **Limpiar archivos temporales**
+- **Actualizar patrones según necesidades**
+- **Optimizar reglas de organización**
+
+#### **Documentación de Cambios**
+- **Registrar todos los movimientos de archivos**
+- **Mantener historial de organización**
+- **Documentar patrones nuevos**
+- **Actualizar reglas según evolución del proyecto**
+
+---
+
+## ⚠️ **LIMITACIONES Y AJUSTES ESPECÍFICOS**
+
+### **Puntos NO Aplicables para este Proyecto**
+
+#### **1. Trazas Distribuidas Complejas**
+- **Razón**: Proyecto pequeño sin microservicios
+- **Alternativa**: Logging estructurado con trace_id es suficiente
+- **Implementación**: Usar UUID único por request
+
+#### **2. Sistemas de Logging Enterprise**
+- **Razón**: No se requiere ELK Stack o sistemas complejos
+- **Alternativa**: Logging a archivos con rotación automática
+- **Implementación**: Logs estructurados en JSON
+
+#### **3. Colas de Mensajería Complejas**
+- **Razón**: Redis es suficiente para el volumen actual
+- **Alternativa**: Redis Lists para colas simples
+- **Implementación**: Redis como broker de mensajes
+
+#### **4. Múltiples Proveedores de Notificaciones**
+- **Razón**: Un proveedor por canal es suficiente
+- **Alternativa**: Configuración simple con fallback
+- **Implementación**: SMTP para email, Twilio para SMS
+
+### **Ajustes Recomendados para el Proyecto**
+
+#### **1. Observabilidad Simplificada**
+```python
+# En lugar de OpenTelemetry, usar logging estructurado
+def log_request(request_id: str, user_id: str, action: str, status: str):
+    log_data = {
+        "request_id": request_id,
+        "user_id": user_id,
+        "action": action,
+        "status": status,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    logging.info(json.dumps(log_data))
+```
+
+#### **2. Métricas Básicas**
+```python
+# Métricas simples sin Prometheus complejo
+class SimpleMetrics:
+    def __init__(self):
+        self.counters = {}
+    
+    def increment(self, metric_name: str):
+        self.counters[metric_name] = self.counters.get(metric_name, 0) + 1
+    
+    def get_metrics(self):
+        return self.counters
+```
+
+#### **3. Notificaciones Simplificadas**
+```python
+# Sistema de notificaciones con Redis simple
+class SimpleNotificationService:
+    def __init__(self, redis_client):
+        self.redis = redis_client
+    
+    def send_email(self, to: str, subject: str, body: str):
+        # Envío directo por SMTP
+        pass
+    
+    def send_sms(self, to: str, message: str):
+        # Envío directo por Twilio
+        pass
+```
+
+### **Configuración Recomendada**
+
+#### **1. Logging**
+```python
+# Configuración de logging para el proyecto
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "structured": {
+            "format": '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s", "trace_id": "%(trace_id)s"}'
+        }
+    },
+    "handlers": {
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/app.log",
+            "maxBytes": 10485760,  # 10MB
+            "backupCount": 5,
+            "formatter": "structured"
+        }
+    },
+    "root": {
+        "handlers": ["file"],
+        "level": "INFO"
+    }
+}
+```
+
+#### **2. Métricas**
+```python
+# Métricas básicas para el proyecto
+METRICS_CONFIG = {
+    "enabled": True,
+    "interval": 60,  # segundos
+    "metrics_file": "logs/metrics.json",
+    "retention_days": 30
+}
+```
+
+#### **3. Alertas**
+```python
+# Alertas básicas para el proyecto
+ALERTS_CONFIG = {
+    "error_rate_threshold": 0.05,  # 5%
+    "latency_threshold": 2.0,      # 2 segundos
+    "notification_channels": ["email", "sms"],
+    "admin_email": "admin@papyrus.com.co"
+}
+```
+
+---
+
+## 📋 **CHECKLIST DE IMPLEMENTACIÓN**
+
+### **✅ Observabilidad Básica**
+- [ ] Logging estructurado con trace_id
+- [ ] Métricas de negocio básicas
+- [ ] Health checks completos
+- [ ] Alertas por email/SMS
+
+### **✅ Notificaciones Multicanal**
+- [ ] Sistema asíncrono con Redis
+- [ ] Manejadores por canal (Email, SMS)
+- [ ] Sistema de fallback
+- [ ] Auditoría de notificaciones
+
+### **✅ Monitoreo**
+- [ ] Métricas de disponibilidad
+- [ ] Métricas de latencia
+- [ ] Métricas de negocio
+- [ ] Sistema de alertas
+
+---
+
+**Última actualización**: Agosto 2025  
+**Versión**: 3.1.0  
+**Mantenido por**: Equipo de Desarrollo PAQUETES EL CLUB

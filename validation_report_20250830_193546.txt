@@ -1,0 +1,35 @@
+REPORTE DE VALIDACIÓN COMPLETA
+==================================================
+Fecha: 2025-08-30 19:35:46
+
+VALIDADOR: Sincronización de Modelos
+Estado: ❌ FALLIDO
+Script: validate-model-sync.py
+Tiempo: 0.6s
+Código: 1
+
+------------------------------
+
+VALIDADOR: Migraciones Alembic
+Estado: ❌ FALLIDO
+Script: validate-migrations.py
+Tiempo: 2.4s
+Código: 1
+Resumen:
+  - version_bd: 003
+  - migraciones_aplicadas: 2
+  - total_migraciones: 10
+
+------------------------------
+
+VALIDADOR: Health Check Avanzado
+Estado: ❌ FALLIDO
+Script: advanced-health-check.py
+Tiempo: 3.6s
+Código: 1
+Resumen:
+  - total_verificaciones: 6
+  - verificaciones_exitosas: 5
+
+------------------------------
+

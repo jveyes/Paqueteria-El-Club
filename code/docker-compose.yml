@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    container_name: paqueteria_v31_redis
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --maxclients 50
+    environment:
+      TZ: America/Bogota
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6390:6379"
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: paqueteria_v31_app
+    env_file:
+      - .env
+    environment:
+      - TZ=America/Bogota
+      - "DATABASE_URL=postgresql://jveyes:a?HC!2.*1#?[==:|289qAI=)#V4kDzl$$@ls-abe25e9bea57818f0ee32555c0e7b4a10e361535.ctobuhtlkwoj.us-east-1.rds.amazonaws.com:5432/paqueteria"
+      # Optimizaciones para desarrollo
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - ENVIRONMENT=development
+      - DEBUG=true
+    volumes:
+      # Volúmenes para desarrollo - cambios en tiempo real
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./database:/app/database
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
+      - ./monitoring:/app/monitoring
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-dev.txt:/app/requirements-dev.txt
+    ports:
+      - "8080:8000"
+    depends_on:
+      - redis
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_celery_worker
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - .env
+    environment:
+      - TZ=America/Bogota
+      - "DATABASE_URL=postgresql://jveyes:a?HC!2.*1#?[==:|289qAI=)#V4kDzl$$@ls-abe25e9bea57818f0ee32555c0e7b4a10e361535.ctobuhtlkwoj.us-east-1.rds.amazonaws.com:5432/paqueteria"
+      - ENVIRONMENT=development
+    volumes:
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./database:/app/database
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
+      - ./monitoring:/app/monitoring
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-dev.txt:/app/requirements-dev.txt
+    depends_on:
+      - redis
+      - app
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "src.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.3'
+
+volumes:
+  redis_data:
+
+networks:
+  paqueteria_network:
+    driver: bridge

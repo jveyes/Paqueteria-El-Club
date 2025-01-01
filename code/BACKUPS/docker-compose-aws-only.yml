@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    container_name: paqueteria_v31_redis
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --maxclients 50
+    environment:
+      TZ: America/Bogota
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_app
+    env_file:
+      - env.development
+    environment:
+      - TZ=America/Bogota
+      # Optimizaciones para desarrollo
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - ENVIRONMENT=development
+      - DEBUG=true
+    volumes:
+      # Volúmenes para desarrollo - cambios en tiempo real
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./database:/app/database
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
+      - ./monitoring:/app/monitoring
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-dev.txt:/app/requirements-dev.txt
+    ports:
+      - "8001:8000"
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_celery_worker
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - env.development
+    environment:
+      - TZ=America/Bogota
+      - ENVIRONMENT=development
+      - DEBUG=true
+    volumes:
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./database:/app/database
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
+      - ./monitoring:/app/monitoring
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-dev.txt:/app/requirements-dev.txt
+    depends_on:
+      redis:
+        condition: service_started
+      app:
+        condition: service_healthy
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "src.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.3'
+
+  nginx:
+    image: nginx:alpine
+    container_name: paqueteria_v31_nginx
+    environment:
+      TZ: America/Bogota
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./uploads:/var/www/uploads
+      - ./static:/var/www/static
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.2'
+
+volumes:
+  redis_data:
+
+networks:
+  paqueteria_network:
+    driver: bridge

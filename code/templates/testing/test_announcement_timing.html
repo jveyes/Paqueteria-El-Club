@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Timing - Anuncio de Paquetes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold text-center mb-6">Test de Timing</h1>
+        
+        <form id="testForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nombre del Cliente</label>
+                <input type="text" id="customerName" value="JESUS MARIA VILLALOBOS" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Número de Guía</label>
+                <input type="text" id="guideNumber" value="TEST123" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Teléfono</label>
+                <input type="text" id="phoneNumber" value="3002596319" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                Probar Timing
+            </button>
+        </form>
+        
+        <div id="results" class="mt-6 p-4 bg-gray-50 rounded-md hidden">
+            <h3 class="font-semibold mb-2">Resultados del Timing:</h3>
+            <div id="timingResults" class="text-sm space-y-1"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('testForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const results = document.getElementById('results');
+        const timingResults = document.getElementById('timingResults');
+        
+        let startTime, endTime;
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset results
+            results.classList.add('hidden');
+            timingResults.innerHTML = '';
+            
+            // Start timing
+            startTime = performance.now();
+            console.log('🚀 INICIO DEL TEST:', new Date().toISOString());
+            
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Procesando...';
+            
+            const payload = {
+                customer_name: document.getElementById('customerName').value,
+                guide_number: document.getElementById('guideNumber').value,
+                phone_number: document.getElementById('phoneNumber').value
+            };
+            
+            try {
+                console.log('📤 Enviando anuncio...');
+                const response = await fetch('/api/announcements/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Anuncio creado:', data);
+                
+                // Measure time to here
+                const timeToCreate = performance.now() - startTime;
+                console.log(`⏱️ Tiempo hasta crear anuncio: ${timeToCreate.toFixed(2)}ms`);
+                
+                // Show results immediately
+                showResults('Anuncio creado exitosamente', timeToCreate);
+                
+                // Send SMS in background
+                setTimeout(async () => {
+                    try {
+                        console.log('📱 Enviando SMS...');
+                        const smsStart = performance.now();
+                        
+                        const smsResponse = await fetch('/api/announcements/send-sms-browser', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'User-Agent': navigator.userAgent,
+                                'Referer': window.location.href
+                            },
+                            body: JSON.stringify({
+                                customer_name: data.customer_name,
+                                phone_number: data.phone_number,
+                                guide_number: data.guide_number,
+                                tracking_code: data.tracking_code
+                            })
+                        });
+                        
+                        if (!smsResponse.ok) {
+                            throw new Error(`SMS HTTP ${smsResponse.status}`);
+                        }
+                        
+                        const smsResult = await smsResponse.json();
+                        const smsTime = performance.now() - smsStart;
+                        
+                        console.log(`📱 SMS enviado en: ${smsTime.toFixed(2)}ms`);
+                        addResult(`SMS enviado: ${smsTime.toFixed(2)}ms`);
+                        
+                    } catch (smsError) {
+                        console.error('❌ Error SMS:', smsError);
+                        addResult(`Error SMS: ${smsError.message}`);
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showResults(`Error: ${error.message}`, performance.now() - startTime);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Probar Timing';
+            }
+        });
+        
+        function showResults(message, time) {
+            results.classList.remove('hidden');
+            addResult(`Anuncio: ${message} (${time.toFixed(2)}ms)`);
+        }
+        
+        function addResult(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            timingResults.appendChild(div);
+        }
+    </script>
+</body>
+</html>

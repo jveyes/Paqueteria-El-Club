@@ -1,0 +1,799 @@
+{% extends "components/base.html" %}
+
+{% block title %}Gestión de Usuarios - PAQUETES EL CLUB v3.1{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl font-light text-gray-900">Gestión de Usuarios</h1>
+            <p class="mt-2 text-sm sm:text-base text-gray-500">Administra todos los usuarios del sistema</p>
+        </div>
+
+        <!-- Navegación -->
+        <div class="bg-white shadow-sm border border-gray-200 rounded-lg mb-6 sm:mb-8">
+            <nav class="flex space-x-4 sm:space-x-8 px-4 sm:px-6" aria-label="Tabs">
+                <a href="/profile" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm">
+                    Perfil
+                </a>
+                <a href="/settings" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm">
+                    Configuración
+                </a>
+                <a href="/profile/change-password" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm">
+                    Seguridad
+                </a>
+                <a href="/admin/users" class="border-papyrus-blue text-papyrus-blue whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm">
+                    Usuarios
+                </a>
+            </nav>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="bg-white shadow-sm border border-gray-200 rounded-lg">
+            <div class="px-4 sm:px-6 py-4 sm:py-6">
+                
+                <!-- Estadísticas -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 sm:mb-8">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 rounded-lg p-2">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Usuarios</h3>
+                                <p class="text-2xl font-bold text-gray-900">{{ users|length }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 rounded-lg p-2">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-gray-600 uppercase tracking-wide">Activos</h3>
+                                <p class="text-2xl font-bold text-gray-900">{{ users|selectattr('is_active')|list|length }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="bg-red-100 rounded-lg p-2">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-gray-600 uppercase tracking-wide">Administradores</h3>
+                                <p class="text-2xl font-bold text-gray-900">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lista de Usuarios -->
+                <div>
+                    <!-- Header con título, búsqueda y botón -->
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+                        <!-- Título -->
+                        <h2 class="text-lg font-light text-gray-900">Lista de Usuarios</h2>
+                        
+                        <!-- Búsqueda y Botón en la misma línea -->
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full lg:w-auto">
+                            <!-- Barra de Búsqueda -->
+                            <div class="relative w-full sm:w-80">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                                <input type="text" 
+                                       id="userSearchInput" 
+                                       placeholder="Buscar..." 
+                                       class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-papyrus-blue focus:border-papyrus-blue sm:text-sm"
+                                       onkeyup="searchUsers()">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <button type="button" 
+                                            onclick="clearSearch()" 
+                                            class="text-gray-400 hover:text-gray-600 focus:outline-none"
+                                            title="Limpiar búsqueda">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Botón Crear Usuario -->
+                            <button onclick="openCreateUserModal()" class="bg-papyrus-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span>Crear Usuario</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensaje de búsqueda -->
+                    <div id="searchMessage" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-sm text-blue-800" id="searchMessageText"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de Usuarios -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full" id="usersTable">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                                    <th class="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                                    <th class="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for user_item in users %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-papyrus-blue rounded-full flex items-center justify-center">
+                                                <span class="text-white font-semibold text-sm">{{ user_item.username[0] if user_item.username else 'U' }}</span>
+                                            </div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">{{ user_item.full_name }}</div>
+                                                <div class="text-sm text-gray-500">{{ user_item.username }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                            {% if user_item.role == 'admin' %}bg-red-100 text-red-800
+                                            {% elif user_item.role == 'operator' %}bg-blue-100 text-blue-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {% if user_item.role == 'admin' %}Administrador
+                                            {% elif user_item.role == 'operator' %}Operador
+                                            {% else %}Cliente{% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="hidden md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user_item.phone or 'No especificado' }}</td>
+                                    <td class="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user_item.email }}</td>
+                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                            {% if user_item.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                            {{ 'Activo' if user_item.is_active else 'Inactivo' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div class="flex items-center space-x-1">
+                                            <!-- Botón Editar - Solo para Admin y Operator -->
+                                            {% if user_item.role in ['admin', 'operator'] %}
+                                            <button onclick="editUser('{{ user_item.id }}', '{{ user_item.username }}', '{{ user_item.email }}', '{{ user_item.full_name }}', '{{ user_item.phone or '' }}', '{{ user_item.role }}', '{{ user_item.is_active }}')" 
+                                                    class="bg-blue-100 text-blue-800 hover:bg-blue-200 p-1.5 rounded transition-colors" 
+                                                    title="Editar Usuario">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                            </button>
+                                            {% else %}
+                                            <!-- Botón deshabilitado para usuarios básicos -->
+                                            <button class="bg-gray-100 text-gray-400 p-1.5 rounded cursor-not-allowed opacity-50" 
+                                                    title="Edición no disponible para usuarios básicos" disabled>
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                            </button>
+                                            {% endif %}
+                                            
+                                            <!-- Botón Restablecer Contraseña -->
+                                            {% if user_item.role in ['admin', 'operator'] %}
+                                            <button onclick="resetPassword('{{ user_item.id }}', '{{ user_item.username }}')" 
+                                                    class="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 p-1.5 rounded transition-colors" 
+                                                    title="Restablecer Contraseña">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                                                </svg>
+                                            </button>
+                                            {% else %}
+                                            <!-- Botón deshabilitado para usuarios básicos -->
+                                            <button class="bg-gray-100 text-gray-400 p-1.5 rounded cursor-not-allowed opacity-50" 
+                                                    title="Reset de contraseña no disponible para usuarios básicos" disabled>
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z"></path>
+                                                </svg>
+                                            </button>
+                                            {% endif %}
+                                            
+                                            <!-- Botón Activar/Desactivar -->
+                                            {% if not user_item.is_active %}
+                                            <button onclick="activateUser('{{ user_item.id }}', '{{ user_item.username }}')" 
+                                                    class="bg-green-100 text-green-800 hover:bg-green-200 p-1.5 rounded transition-colors" 
+                                                    title="Activar Usuario">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </button>
+                                            {% else %}
+                                            <button onclick="deactivateUser('{{ user_item.id }}', '{{ user_item.username }}')" 
+                                                    class="bg-orange-100 text-orange-800 hover:bg-orange-200 p-1.5 rounded transition-colors" 
+                                                    title="Desactivar Usuario">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </button>
+                                            {% endif %}
+                                            
+                                            <!-- Botón Eliminar -->
+                                            <button onclick="deleteUser('{{ user_item.id }}', '{{ user_item.username }}')" 
+                                                    class="bg-red-100 text-red-800 hover:bg-red-200 p-1.5 rounded transition-colors" 
+                                                    title="Eliminar Usuario">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Modal de Crear Usuario -->
+<div id="createUserModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-lg shadow-2xl rounded-2xl bg-white">
+        <div class="text-center mb-6">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Crear Nuevo Usuario</h3>
+            <p class="text-sm text-gray-600">Completa la información para crear un nuevo usuario</p>
+        </div>
+        
+        <form id="createUserForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Nombre de Usuario -->
+                <div>
+                    <label for="create_username" class="block text-sm font-medium text-gray-700 mb-1">Nombre de Usuario *</label>
+                    <input type="text" id="create_username" name="username" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                           placeholder="Ingresa el nombre de usuario">
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label for="create_email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" id="create_email" name="email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                           placeholder="Ingresa el email">
+                </div>
+            </div>
+            
+            <!-- Nombre Completo -->
+            <div>
+                <label for="create_full_name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+                <input type="text" id="create_full_name" name="full_name" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                       placeholder="Ingresa el nombre completo">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Teléfono -->
+                <div>
+                    <label for="create_phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    <input type="tel" id="create_phone" name="phone"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                           placeholder="Ingresa el teléfono">
+                </div>
+                
+                <!-- Rol -->
+                <div>
+                    <label for="create_role" class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+                    <select id="create_role" name="role" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                            onchange="togglePasswordField()">
+                        <option value="operator" selected>Operador</option>
+                        <option value="user">Usuario</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Operador: acceso al dashboard. Usuario: solo notificaciones. Admin: control total.</p>
+                </div>
+            </div>
+            
+            <!-- Contraseña -->
+            <div id="passwordField">
+                <label for="create_password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
+                <input type="password" id="create_password" name="password" required minlength="8"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                       placeholder="Ingresa la contraseña (mínimo 8 caracteres)">
+                <p class="mt-1 text-xs text-gray-500">Mínimo 8 caracteres</p>
+            </div>
+            
+            <!-- Botones -->
+            <div class="flex space-x-3 pt-4">
+                <button type="button" onclick="closeCreateUserModal()" class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit" class="flex-1 bg-papyrus-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    Crear Usuario
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Editar Usuario -->
+<div id="editUserModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-lg shadow-2xl rounded-2xl bg-white">
+        <div class="text-center mb-6">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Editar Usuario</h3>
+            <p class="text-sm text-gray-600">Modifica la información del usuario</p>
+        </div>
+        
+        <form id="editUserForm" class="space-y-4">
+            <input type="hidden" id="edit_user_id" name="user_id">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Nombre de Usuario -->
+                <div>
+                    <label for="edit_username" class="block text-sm font-medium text-gray-700 mb-1">Nombre de Usuario *</label>
+                    <input type="text" id="edit_username" name="username" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                           placeholder="Ingresa el nombre de usuario">
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label for="edit_email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" id="edit_email" name="email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                           placeholder="Ingresa el email">
+                </div>
+            </div>
+            
+            <!-- Nombre Completo -->
+            <div>
+                <label for="edit_full_name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+                <input type="text" id="edit_full_name" name="full_name" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                       placeholder="Ingresa el nombre completo">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Teléfono -->
+                <div>
+                    <label for="edit_phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    <input type="tel" id="edit_phone" name="phone"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors"
+                           placeholder="Ingresa el teléfono">
+                </div>
+                
+                <!-- Rol -->
+                <div>
+                    <label for="edit_role" class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+                    <select id="edit_role" name="role" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white transition-colors">
+                        <option value="operator">Operador</option>
+                        <option value="user">Usuario</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Se pueden asignar todos los roles del sistema</p>
+                </div>
+            </div>
+            
+            <!-- Estado -->
+            <div>
+                <label class="flex items-center">
+                    <input type="checkbox" id="edit_is_active" name="is_active" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                    <span class="ml-2 text-sm text-gray-700">Usuario Activo</span>
+                </label>
+            </div>
+            
+            <!-- Botones -->
+            <div class="flex space-x-3 pt-4">
+                <button type="button" onclick="closeEditUserModal()" class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit" class="flex-1 bg-papyrus-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2" id="modalTitle">Confirmar Acción</h3>
+            <p class="text-sm text-gray-600 mb-6" id="modalMessage">¿Estás seguro de que quieres realizar esta acción?</p>
+            <div class="flex space-x-3">
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                    Cancelar
+                </button>
+                <button id="confirmButton" class="flex-1 bg-papyrus-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Funciones para el modal de crear usuario
+function openCreateUserModal() {
+    document.getElementById('createUserModal').classList.remove('hidden');
+    // Limpiar el formulario
+    document.getElementById('createUserForm').reset();
+}
+
+function closeCreateUserModal() {
+    document.getElementById('createUserModal').classList.add('hidden');
+}
+
+// Funciones para el modal de editar usuario
+function editUser(userId, username, email, fullName, phone, role, isActive) {
+    // Llenar el formulario con los datos del usuario
+    document.getElementById('edit_user_id').value = userId;
+    document.getElementById('edit_username').value = username;
+    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_full_name').value = fullName;
+    document.getElementById('edit_phone').value = phone || '';
+    document.getElementById('edit_role').value = role;
+    document.getElementById('edit_is_active').checked = isActive === 'True' || isActive === true;
+    
+    // Mostrar el modal
+    document.getElementById('editUserModal').classList.remove('hidden');
+}
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').classList.add('hidden');
+}
+
+// Función para manejar el toggle del campo de contraseña según el rol
+function togglePasswordField() {
+    const roleSelect = document.getElementById('create_role');
+    const passwordField = document.getElementById('passwordField');
+    const passwordInput = document.getElementById('create_password');
+    
+    if (roleSelect.value === 'user') {
+        // Para rol "Usuario", deshabilitar y vaciar el campo de contraseña
+        passwordInput.disabled = true;
+        passwordInput.required = false;
+        passwordInput.value = '';
+        passwordInput.placeholder = 'No se requiere contraseña para usuarios';
+        passwordField.style.opacity = '0.5';
+    } else {
+        // Para roles "Operador" y "Administrador", habilitar el campo de contraseña
+        passwordInput.disabled = false;
+        passwordInput.required = true;
+        passwordInput.placeholder = 'Ingresa la contraseña (mínimo 8 caracteres)';
+        passwordField.style.opacity = '1';
+    }
+}
+
+// Manejar envío del formulario de crear usuario
+document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    
+    try {
+        // Mostrar estado de carga
+        submitButton.textContent = 'Creando...';
+        submitButton.disabled = true;
+        
+        // Convertir FormData a JSON
+        const jsonData = {};
+        for (let [key, value] of formData.entries()) {
+            jsonData[key] = value;
+        }
+        
+        const response = await fetch('/admin/users/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(jsonData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Éxito
+            closeCreateUserModal();
+            alert('Usuario creado exitosamente');
+            location.reload(); // Recargar la página para mostrar el nuevo usuario
+        } else {
+            // Error
+            alert('Error: ' + result.detail);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al crear el usuario. Por favor, intenta nuevamente.');
+    } finally {
+        // Restaurar botón
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+    }
+});
+
+// Manejar envío del formulario de editar usuario
+document.getElementById('editUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    
+    try {
+        // Mostrar estado de carga
+        submitButton.textContent = 'Guardando...';
+        submitButton.disabled = true;
+        
+        // Convertir FormData a JSON
+        const jsonData = {};
+        for (let [key, value] of formData.entries()) {
+            jsonData[key] = value;
+        }
+        
+        const response = await fetch('/admin/users/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(jsonData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Éxito
+            closeEditUserModal();
+            alert('Usuario actualizado exitosamente');
+            location.reload(); // Recargar la página para mostrar los cambios
+        } else {
+            // Error
+            alert('Error: ' + result.detail);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar el usuario. Por favor, intenta nuevamente.');
+    } finally {
+        // Restaurar botón
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+    }
+});
+
+function resetPassword(userId, username) {
+    document.getElementById('modalTitle').textContent = 'Restablecer Contraseña';
+    document.getElementById('modalMessage').textContent = `¿Estás seguro de que quieres restablecer la contraseña del usuario "${username}"? Se enviará una nueva contraseña por email.`;
+    document.getElementById('confirmButton').textContent = 'Restablecer';
+    document.getElementById('confirmButton').onclick = async () => {
+        try {
+            const response = await fetch('/admin/users/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                closeModal();
+                alert('Contraseña restablecida exitosamente. Se ha enviado una nueva contraseña por email.');
+            } else {
+                alert('Error: ' + result.detail);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al restablecer la contraseña. Por favor, intenta nuevamente.');
+        }
+    };
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function activateUser(userId, username) {
+    document.getElementById('modalTitle').textContent = 'Activar Usuario';
+    document.getElementById('modalMessage').textContent = `¿Estás seguro de que quieres activar el usuario "${username}"?`;
+    document.getElementById('confirmButton').textContent = 'Activar';
+    document.getElementById('confirmButton').onclick = async () => {
+        try {
+            const response = await fetch('/admin/users/toggle-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: userId, is_active: true })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                closeModal();
+                alert('Usuario activado exitosamente.');
+                location.reload();
+            } else {
+                alert('Error: ' + result.detail);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al activar el usuario. Por favor, intenta nuevamente.');
+        }
+    };
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function deactivateUser(userId, username) {
+    document.getElementById('modalTitle').textContent = 'Desactivar Usuario';
+    document.getElementById('modalMessage').textContent = `¿Estás seguro de que quieres desactivar el usuario "${username}"?`;
+    document.getElementById('confirmButton').textContent = 'Desactivar';
+    document.getElementById('confirmButton').onclick = async () => {
+        try {
+            const response = await fetch('/admin/users/toggle-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: userId, is_active: false })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                closeModal();
+                alert('Usuario desactivado exitosamente.');
+                location.reload();
+            } else {
+                alert('Error: ' + result.detail);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al desactivar el usuario. Por favor, intenta nuevamente.');
+        }
+    };
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function deleteUser(userId, username) {
+    document.getElementById('modalTitle').textContent = 'Eliminar Usuario';
+    document.getElementById('modalMessage').textContent = `¿Estás seguro de que quieres eliminar permanentemente el usuario "${username}"? Esta acción no se puede deshacer.`;
+    document.getElementById('confirmButton').textContent = 'Eliminar';
+    document.getElementById('confirmButton').className = 'flex-1 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors';
+    document.getElementById('confirmButton').onclick = async () => {
+        try {
+            const response = await fetch('/admin/users/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                closeModal();
+                alert('Usuario eliminado exitosamente.');
+                location.reload();
+            } else {
+                alert('Error: ' + result.detail);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al eliminar el usuario. Por favor, intenta nuevamente.');
+        }
+    };
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    // Resetear el botón de confirmación a su estado original
+    document.getElementById('confirmButton').className = 'flex-1 bg-papyrus-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors';
+}
+
+// Funcionalidad de búsqueda
+function searchUsers() {
+    const searchTerm = document.getElementById('userSearchInput').value.toLowerCase().trim();
+    const table = document.getElementById('usersTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    const searchMessage = document.getElementById('searchMessage');
+    const searchMessageText = document.getElementById('searchMessageText');
+    
+    let visibleCount = 0;
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        
+        if (cells.length === 0) continue; // Skip header row
+        
+        // Obtener datos de las celdas según el orden actual:
+        // 0: Usuario (nombre completo + username), 1: Rol, 2: Teléfono, 3: Email, 4: Estado, 5: Acciones
+        const userCell = cells[0] ? cells[0].textContent.toLowerCase() : '';
+        const role = cells[1] ? cells[1].textContent.toLowerCase() : '';
+        const phone = cells[2] ? cells[2].textContent.toLowerCase() : '';
+        const email = cells[3] ? cells[3].textContent.toLowerCase() : '';
+        const status = cells[4] ? cells[4].textContent.toLowerCase() : '';
+        
+        // Extraer username y nombre completo del campo usuario
+        const userLines = userCell.split('\n');
+        const fullName = userLines[0] || '';
+        const username = userLines[1] || '';
+        
+        // Verificar si el término de búsqueda coincide con algún campo
+        const matches = email.includes(searchTerm) || 
+                       phone.includes(searchTerm) || 
+                       role.includes(searchTerm) ||
+                       fullName.includes(searchTerm) ||
+                       username.includes(searchTerm) ||
+                       status.includes(searchTerm);
+        
+        if (searchTerm === '' || matches) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    }
+    
+    // Mostrar mensaje de búsqueda
+    if (searchTerm !== '') {
+        if (visibleCount === 0) {
+            searchMessageText.textContent = `No se encontraron usuarios que coincidan con "${searchTerm}"`;
+            searchMessage.classList.remove('hidden');
+        } else {
+            searchMessageText.textContent = `Se encontraron ${visibleCount} usuario(s) que coinciden con "${searchTerm}"`;
+            searchMessage.classList.remove('hidden');
+        }
+    } else {
+        searchMessage.classList.add('hidden');
+    }
+}
+
+// Limpiar búsqueda
+function clearSearch() {
+    document.getElementById('userSearchInput').value = '';
+    searchUsers();
+}
+</script>
+{% endblock %}

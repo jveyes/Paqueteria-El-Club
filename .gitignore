@@ -1,0 +1,110 @@
+# ========================================
+# PAQUETERIA EL CLUB v3.1 - .gitignore
+# ========================================
+
+# Variables de entorno y configuración sensible
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+database/backups/
+database/migrations/__pycache__/
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archivos de uploads (datos de usuario)
+uploads/
+!uploads/.gitkeep
+
+# SSL y certificados
+ssl/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Backups y archivos de respaldo
+backups/
+*.tar.gz
+*.zip
+
+# Archivos de monitoreo y métricas
+monitoring/data/
+monitoring/logs/
+
+# Archivos de test
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Archivos de documentación temporal
+docs/_build/
+docs/.doctrees/
+
+# Archivos específicos del proyecto
+docker-images/
+*.INFO.md

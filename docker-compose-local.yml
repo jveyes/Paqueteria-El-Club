@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: paqueteria_v31_nginx_local
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - ./code/nginx/conf.d:/etc/nginx/conf.d
+      - ./code/static:/app/static
+      - ./code/uploads:/app/uploads
+      - ./ssl:/etc/nginx/ssl
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    depends_on:
+      - app
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    environment:
+      TZ: America/Bogota
+
+  redis:
+    image: redis:7-alpine
+    container_name: paqueteria_v31_redis_local
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6381:6379"
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    environment:
+      TZ: America/Bogota
+
+  app:
+    build:
+      context: ./code
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_app_local
+    environment:
+      - DATABASE_URL=postgresql://jveyes:a?HC!2.*1#?[==:|289qAI=)#V4kDzl$$@ls-abe25e9bea57818f0ee32555c0e7b4a10e361535.ctobuhtlkwoj.us-east-1.rds.amazonaws.com:5432/paqueteria
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - SMTP_HOST=taylor.mxrouting.net
+      - SMTP_PORT=587
+      - SMTP_USER=guia@papyrus.com.co
+      - SMTP_PASSWORD=^Kxub2aoh@xC2LsK
+      - SMTP_FROM_NAME=PAQUETERIA EL CLUB
+      - SMTP_FROM_EMAIL=guia@papyrus.com.co
+      - LIWA_API_KEY=${LIWA_API_KEY}
+      - LIWA_PHONE_NUMBER=${LIWA_PHONE_NUMBER}
+      - TZ=America/Bogota
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - ENVIRONMENT=development
+      - DEBUG=True
+    volumes:
+      - ./code/src:/app/src
+      - ./code/templates:/app/templates
+      - ./code/static:/app/static
+      - ./code/uploads:/app/uploads
+      - ./code/logs:/app/logs
+      - ./code/database:/app/database
+      - ./code/scripts:/app/scripts
+      - ./code/tests:/app/tests
+      - ./code/docs:/app/docs
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery_worker:
+    build:
+      context: ./code
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_celery_worker_local
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql://jveyes:a?HC!2.*1#?[==:|289qAI=)#V4kDzl$$@ls-abe25e9bea57818f0ee32555c0e7b4a10e361535.ctobuhtlkwoj.us-east-1.rds.amazonaws.com:5432/paqueteria
+      - REDIS_URL=redis://redis:6379/0
+      - SMTP_HOST=taylor.mxrouting.net
+      - SMTP_PORT=587
+      - SMTP_USER=guia@papyrus.com.co
+      - SMTP_PASSWORD=^Kxub2aoh@xC2LsK
+      - SMTP_FROM_NAME=PAQUETERIA EL CLUB
+      - SMTP_FROM_EMAIL=guia@papyrus.com.co
+      - LIWA_API_KEY=${LIWA_API_KEY}
+      - TZ=America/Bogota
+      - ENVIRONMENT=development
+    volumes:
+      - ./code/src:/app/src
+      - ./code/templates:/app/templates
+      - ./code/static:/app/static
+      - ./code/uploads:/app/uploads
+      - ./code/logs:/app/logs
+      - ./code/database:/app/database
+      - ./code/scripts:/app/scripts
+      - ./code/tests:/app/tests
+      - ./code/docs:/app/docs
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - app
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "celery", "-A", "src.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  redis_data:
+
+networks:
+  paqueteria_network:
+    driver: bridge

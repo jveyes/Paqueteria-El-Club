@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Focus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        input {
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de Focus Automático</h1>
+    
+    <div>
+        <label for="customer_name">Nombre del Cliente:</label>
+        <input type="text" id="customer_name" name="customer_name" placeholder="Nombre del cliente">
+    </div>
+    
+    <div>
+        <label for="guide_number">Número de Guía:</label>
+        <input type="text" id="guide_number" name="guide_number" placeholder="Número de guía">
+    </div>
+    
+    <div>
+        <label for="phone_number">Teléfono:</label>
+        <input type="tel" id="phone_number" name="phone_number" placeholder="Teléfono">
+    </div>
+    
+    <div class="log" id="log">
+        <strong>Log de eventos:</strong><br>
+        <span id="logContent"></span>
+    </div>
+
+    <script>
+        function log(message) {
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}<br>`;
+            console.log(message);
+        }
+        
+        function applyFocus() {
+            log('Aplicando focus...');
+            const customerNameField = document.getElementById('customer_name');
+            if (customerNameField) {
+                log('Campo de nombre encontrado, aplicando focus...');
+                customerNameField.focus();
+                log('Focus aplicado exitosamente');
+            } else {
+                log('❌ Campo de nombre NO encontrado');
+            }
+        }
+        
+        // Intentar focus en diferentes momentos del ciclo de carga
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM cargado, configurando focus...');
+            setTimeout(applyFocus, 100);
+        });
+        
+        // Respaldo con window.onload
+        window.addEventListener('load', function() {
+            log('Window cargado, verificando focus...');
+            setTimeout(applyFocus, 50);
+        });
+        
+        // Verificar si el campo existe inmediatamente
+        log('Script cargado, verificando campo...');
+        const customerNameField = document.getElementById('customer_name');
+        if (customerNameField) {
+            log('Campo encontrado inmediatamente');
+        } else {
+            log('Campo NO encontrado inmediatamente');
+        }
+    </script>
+</body>
+</html>
