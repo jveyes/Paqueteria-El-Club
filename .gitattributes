@@ -1,0 +1,49 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text diff=python
+
+# Shell scripts
+*.sh text eol=lf
+
+# Docker files
+Dockerfile text
+docker-compose*.yml text
+
+# Configuration files
+*.yml text
+*.yaml text
+*.json text
+*.toml text
+*.ini text
+*.cfg text
+
+# Documentation
+*.md text
+*.txt text
+*.rst text
+
+# HTML/CSS/JS
+*.html text
+*.css text
+*.js text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+
+# Logs (should be ignored, but just in case)
+*.log text eol=lf
+
+# Database dumps
+*.sql text eol=lf
+
+# Environment files
+.env* text eol=lf

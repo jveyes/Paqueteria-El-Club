@@ -1,0 +1,449 @@
+<!-- Sistema de Helpdesk - Lista de Tickets - PAPYRUS -->
+<div class="min-h-screen bg-gray-50" x-data="helpdeskTickets()">
+    <!-- Header del Helpdesk -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Centro de Ayuda</h1>
+                    <p class="text-sm text-gray-600">Gestión de tickets de soporte y solicitudes de ayuda</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button @click="refreshTickets" 
+                            :disabled="isLoading"
+                            class="papyrus-button-secondary flex items-center space-x-2">
+                        <svg x-show="!isLoading" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <svg x-show="isLoading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="isLoading ? 'Actualizando...' : 'Actualizar'"></span>
+                    </button>
+                    <a href="/helpdesk/tickets/new" class="papyrus-button">
+                        Nuevo Ticket
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Filtros y Búsqueda -->
+        <div class="papyrus-card p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <input type="text" 
+                           x-model="searchTerm" 
+                           placeholder="Buscar por ID, asunto o cliente..." 
+                           class="papyrus-input w-full">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select x-model="statusFilter" class="papyrus-input w-full">
+                        <option value="">Todos los estados</option>
+                        <option value="abierto">Abierto</option>
+                        <option value="en_proceso">En Proceso</option>
+                        <option value="esperando_cliente">Esperando Cliente</option>
+                        <option value="cerrado">Cerrado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Prioridad</label>
+                    <select x-model="priorityFilter" class="papyrus-input w-full">
+                        <option value="">Todas las prioridades</option>
+                        <option value="baja">Baja</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                        <option value="urgente">Urgente</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                    <select x-model="categoryFilter" class="papyrus-input w-full">
+                        <option value="">Todas las categorías</option>
+                        <option value="tecnico">Técnico</option>
+                        <option value="facturacion">Facturación</option>
+                        <option value="entrega">Entrega</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="papyrus-card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Tickets</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="stats.total"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="papyrus-card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Abiertos</p>
+                        <p class="text-2xl font-bold text-yellow-600" x-text="stats.abiertos"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="papyrus-card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">En Proceso</p>
+                        <p class="text-2xl font-bold text-blue-600" x-text="stats.en_proceso"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="papyrus-card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Cerrados</p>
+                        <p class="text-2xl font-bold text-green-600" x-text="stats.cerrados"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Tickets -->
+        <div class="papyrus-card overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Tickets de Soporte</h3>
+                    <div class="flex items-center space-x-2 text-sm text-gray-500">
+                        <span x-text="`Mostrando ${filteredTickets.length} de ${tickets.length} tickets`"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ID
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Asunto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Cliente
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Prioridad
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="ticket in filteredTickets" :key="ticket.id">
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="font-mono text-sm font-medium text-gray-900" x-text="'#' + ticket.id"></span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900" x-text="ticket.subject"></div>
+                                        <div class="text-sm text-gray-500" x-text="ticket.category"></div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900" x-text="ticket.customer_name"></div>
+                                        <div class="text-sm text-gray-500" x-text="ticket.customer_phone"></div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full" 
+                                          :class="{
+                                              'bg-yellow-100 text-yellow-800': ticket.status === 'abierto',
+                                              'bg-blue-100 text-blue-800': ticket.status === 'en_proceso',
+                                              'bg-orange-100 text-orange-800': ticket.status === 'esperando_cliente',
+                                              'bg-green-100 text-green-800': ticket.status === 'cerrado'
+                                          }" 
+                                          x-text="getStatusText(ticket.status)"></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full" 
+                                          :class="{
+                                              'bg-gray-100 text-gray-800': ticket.priority === 'baja',
+                                              'bg-blue-100 text-blue-800': ticket.priority === 'media',
+                                              'bg-orange-100 text-orange-800': ticket.priority === 'alta',
+                                              'bg-red-100 text-red-800': ticket.priority === 'urgente'
+                                          }" 
+                                          x-text="getPriorityText(ticket.priority)"></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(ticket.created_at)"></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <div class="flex space-x-2">
+                                        <button @click="viewTicket(ticket.id)" class="text-blue-600 hover:text-blue-900">
+                                            Ver
+                                        </button>
+                                        <button @click="editTicket(ticket.id)" class="text-green-600 hover:text-green-900">
+                                            Editar
+                                        </button>
+                                        <button @click="closeTicket(ticket.id)" 
+                                                x-show="ticket.status !== 'cerrado'"
+                                                class="text-red-600 hover:text-red-900">
+                                            Cerrar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-500">
+                        Mostrando <span x-text="(currentPage - 1) * itemsPerPage + 1"></span> a 
+                        <span x-text="Math.min(currentPage * itemsPerPage, filteredTickets.length)"></span> de 
+                        <span x-text="filteredTickets.length"></span> resultados
+                    </div>
+                    <div class="flex space-x-1">
+                        <button @click="currentPage = Math.max(1, currentPage - 1)" 
+                                :disabled="currentPage === 1" 
+                                class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Anterior
+                        </button>
+                        <button @click="currentPage = Math.min(totalPages, currentPage + 1)" 
+                                :disabled="currentPage === totalPages" 
+                                class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function helpdeskTickets() {
+    return {
+        isLoading: false,
+        searchTerm: '',
+        statusFilter: '',
+        priorityFilter: '',
+        categoryFilter: '',
+        currentPage: 1,
+        itemsPerPage: 10,
+        
+        stats: {
+            total: 0,
+            abiertos: 0,
+            en_proceso: 0,
+            cerrados: 0
+        },
+        
+        tickets: [
+            {
+                id: 1001,
+                subject: 'Problema con número de tracking',
+                category: 'Técnico',
+                customer_name: 'Juan Pérez',
+                customer_phone: '(123) 456-7890',
+                status: 'abierto',
+                priority: 'alta',
+                created_at: '2024-01-16T10:30:00',
+                description: 'No puedo encontrar mi paquete con el número de tracking proporcionado'
+            },
+            {
+                id: 1002,
+                subject: 'Consulta sobre tarifas',
+                category: 'Facturación',
+                customer_name: 'María García',
+                customer_phone: '(456) 789-0123',
+                status: 'en_proceso',
+                priority: 'media',
+                created_at: '2024-01-16T11:15:00',
+                description: 'Necesito información sobre las tarifas de almacenamiento'
+            },
+            {
+                id: 1003,
+                subject: 'Paquete dañado',
+                category: 'Entrega',
+                customer_name: 'Carlos López',
+                customer_phone: '(789) 012-3456',
+                status: 'esperando_cliente',
+                priority: 'urgente',
+                created_at: '2024-01-16T12:00:00',
+                description: 'Mi paquete llegó dañado y necesito una solución'
+            },
+            {
+                id: 1004,
+                subject: 'Cambio de dirección',
+                category: 'General',
+                customer_name: 'Ana Rodríguez',
+                customer_phone: '(012) 345-6789',
+                status: 'cerrado',
+                priority: 'baja',
+                created_at: '2024-01-16T13:45:00',
+                description: 'Necesito cambiar la dirección de entrega de mi paquete'
+            },
+            {
+                id: 1005,
+                subject: 'Error en el sistema',
+                category: 'Técnico',
+                customer_name: 'Luis Martínez',
+                customer_phone: '(345) 678-9012',
+                status: 'abierto',
+                priority: 'alta',
+                created_at: '2024-01-16T14:20:00',
+                description: 'El sistema no me permite anunciar mi paquete'
+            }
+        ],
+        
+        get filteredTickets() {
+            let filtered = this.tickets;
+            
+            if (this.searchTerm) {
+                filtered = filtered.filter(ticket => 
+                    ticket.id.toString().includes(this.searchTerm) ||
+                    ticket.subject.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                    ticket.customer_name.toLowerCase().includes(this.searchTerm.toLowerCase())
+                );
+            }
+            
+            if (this.statusFilter) {
+                filtered = filtered.filter(ticket => ticket.status === this.statusFilter);
+            }
+            
+            if (this.priorityFilter) {
+                filtered = filtered.filter(ticket => ticket.priority === this.priorityFilter);
+            }
+            
+            if (this.categoryFilter) {
+                filtered = filtered.filter(ticket => ticket.category.toLowerCase() === this.categoryFilter);
+            }
+            
+            return filtered;
+        },
+        
+        get totalPages() {
+            return Math.ceil(this.filteredTickets.length / this.itemsPerPage);
+        },
+        
+        getStatusText(status) {
+            const statusMap = {
+                'abierto': 'Abierto',
+                'en_proceso': 'En Proceso',
+                'esperando_cliente': 'Esperando Cliente',
+                'cerrado': 'Cerrado'
+            };
+            return statusMap[status] || status;
+        },
+        
+        getPriorityText(priority) {
+            const priorityMap = {
+                'baja': 'Baja',
+                'media': 'Media',
+                'alta': 'Alta',
+                'urgente': 'Urgente'
+            };
+            return priorityMap[priority] || priority;
+        },
+        
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        
+        async refreshTickets() {
+            this.isLoading = true;
+            
+            // Simular actualización
+            setTimeout(() => {
+                this.updateStats();
+                this.isLoading = false;
+                
+                if (window.Alpine && window.Alpine.store) {
+                    window.Alpine.store('papyrus').addNotification('Tickets actualizados', 'success');
+                }
+            }, 1500);
+        },
+        
+        updateStats() {
+            this.stats.total = this.tickets.length;
+            this.stats.abiertos = this.tickets.filter(t => t.status === 'abierto').length;
+            this.stats.en_proceso = this.tickets.filter(t => t.status === 'en_proceso').length;
+            this.stats.cerrados = this.tickets.filter(t => t.status === 'cerrado').length;
+        },
+        
+        viewTicket(id) {
+            window.location.href = `/helpdesk/tickets/${id}`;
+        },
+        
+        editTicket(id) {
+            window.location.href = `/helpdesk/tickets/${id}/edit`;
+        },
+        
+        closeTicket(id) {
+            if (confirm('¿Está seguro de que desea cerrar este ticket?')) {
+                const ticket = this.tickets.find(t => t.id === id);
+                if (ticket) {
+                    ticket.status = 'cerrado';
+                    this.updateStats();
+                    
+                    if (window.Alpine && window.Alpine.store) {
+                        window.Alpine.store('papyrus').addNotification('Ticket cerrado exitosamente', 'success');
+                    }
+                }
+            }
+        },
+        
+        init() {
+            this.updateStats();
+        }
+    }
+}
+</script>

@@ -1,0 +1,343 @@
+<!-- Formulario de Anuncio de Paquetes - PAPYRUS -->
+<div class="min-h-screen bg-gray-50 py-12" x-data="announcePackageForm()">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header del formulario -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Anunciar Nuevo Paquete</h1>
+            <p class="text-gray-600">Complete la información básica para anunciar su paquete</p>
+        </div>
+
+        <!-- Formulario principal -->
+        <div class="papyrus-card p-8">
+            <form @submit.prevent="submitForm" hx-post="/api/packages/announce" hx-target="#form-response">
+                <!-- Información del Cliente -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        Información del Cliente
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="customer_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                Nombre Completo *
+                            </label>
+                            <input type="text" 
+                                   id="customer_name" 
+                                   name="customer_name" 
+                                   x-model="form.customer_name"
+                                   class="papyrus-input w-full"
+                                   :class="{ 'border-red-500': errors.customer_name }"
+                                   required>
+                            <p x-show="errors.customer_name" class="text-red-500 text-sm mt-1" x-text="errors.customer_name"></p>
+                        </div>
+                        
+                        <div>
+                            <label for="customer_phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                Teléfono *
+                            </label>
+                            <input type="tel" 
+                                   id="customer_phone" 
+                                   name="customer_phone" 
+                                   x-model="form.customer_phone"
+                                   @input="formatPhoneNumber"
+                                   class="papyrus-input w-full"
+                                   :class="{ 'border-red-500': errors.customer_phone }"
+                                   placeholder="(123) 456-7890"
+                                   required>
+                            <p x-show="errors.customer_phone" class="text-red-500 text-sm mt-1" x-text="errors.customer_phone"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del Paquete -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                        Información del Paquete
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="package_type" class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo de Paquete *
+                            </label>
+                            <select id="package_type" 
+                                    name="package_type" 
+                                    x-model="form.package_type"
+                                    @change="calculateCosts"
+                                    class="papyrus-input w-full"
+                                    :class="{ 'border-red-500': errors.package_type }"
+                                    required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="documentos">Documentos</option>
+                                <option value="ropa">Ropa</option>
+                                <option value="electronica">Electrónica</option>
+                                <option value="alimentos">Alimentos</option>
+                                <option value="fragil">Frágil</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                            <p x-show="errors.package_type" class="text-red-500 text-sm mt-1" x-text="errors.package_type"></p>
+                        </div>
+                        
+                        <div>
+                            <label for="package_condition" class="block text-sm font-medium text-gray-700 mb-2">
+                                Estado del Paquete
+                            </label>
+                            <select id="package_condition" 
+                                    name="package_condition" 
+                                    x-model="form.package_condition"
+                                    class="papyrus-input w-full">
+                                <option value="nuevo">Nuevo</option>
+                                <option value="usado">Usado</option>
+                                <option value="reparado">Reparado</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <label for="observations" class="block text-sm font-medium text-gray-700 mb-2">
+                            Observaciones
+                        </label>
+                        <textarea id="observations" 
+                                  name="observations" 
+                                  x-model="form.observations"
+                                  rows="3"
+                                  class="papyrus-input w-full resize-none"
+                                  placeholder="Descripción adicional del paquete, instrucciones especiales, etc."></textarea>
+                    </div>
+                </div>
+
+                <!-- Cálculo de Costos -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        Costos Estimados
+                    </h2>
+                    
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-red-600" x-text="'$' + (costs.storage_cost || '0.00')"></div>
+                                <div class="text-sm text-gray-600">Costo de Almacenamiento</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-red-600" x-text="'$' + (costs.delivery_cost || '0.00')"></div>
+                                <div class="text-sm text-gray-600">Costo de Entrega</div>
+                            </div>
+                            <div class="text-center bg-red-600 text-white rounded-lg p-4">
+                                <div class="text-2xl font-bold" x-text="'$' + (costs.total_cost || '0.00')"></div>
+                                <div class="text-sm opacity-90">Costo Total</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-xs text-gray-500 text-center">
+                            * Los costos son estimados y pueden variar según el tiempo de almacenamiento
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Número de Tracking -->
+                <div class="mb-8" x-show="trackingNumber">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Número de Tracking
+                    </h2>
+                    
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm text-green-600 font-medium">Su número de tracking es:</div>
+                                <div class="text-2xl font-mono font-bold text-green-800" x-text="trackingNumber"></div>
+                            </div>
+                            <button type="button" 
+                                    @click="copyTrackingNumber"
+                                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                Copiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button type="submit" 
+                            :disabled="isSubmitting"
+                            class="papyrus-button flex-1 flex items-center justify-center"
+                            :class="{ 'opacity-50 cursor-not-allowed': isSubmitting }">
+                        <svg x-show="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="isSubmitting ? 'Procesando...' : 'Anunciar Paquete'"></span>
+                    </button>
+                    
+                    <button type="button" 
+                            @click="resetForm"
+                            class="papyrus-button-secondary flex-1">
+                        Limpiar Formulario
+                    </button>
+                </div>
+            </form>
+
+            <!-- Respuesta del formulario -->
+            <div id="form-response" class="mt-6"></div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="mt-8 papyrus-card p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Importante</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Proceso de Entrega</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Recibimos su paquete en nuestras instalaciones</li>
+                        <li>• Le notificamos cuando esté disponible</li>
+                        <li>• Coordinamos la entrega con usted</li>
+                        <li>• Confirmamos la entrega exitosa</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Tiempos Estimados</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Procesamiento: 24-48 horas</li>
+                        <li>• Almacenamiento: Hasta 30 días</li>
+                        <li>• Entrega: 1-3 días hábiles</li>
+                        <li>• Soporte: 24/7 disponible</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function announcePackageForm() {
+    return {
+        form: {
+            customer_name: '',
+            customer_phone: '',
+            package_type: '',
+            package_condition: 'nuevo',
+            observations: ''
+        },
+        errors: {},
+        isSubmitting: false,
+        trackingNumber: '',
+        costs: {
+            storage_cost: '0.00',
+            delivery_cost: '0.00',
+            total_cost: '0.00'
+        },
+        
+        formatPhoneNumber() {
+            let value = this.form.customer_phone.replace(/\D/g, '');
+            if (value.length >= 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{3})(\d{0,3})/, '($1) $2');
+            }
+            this.form.customer_phone = value;
+        },
+        
+        calculateCosts() {
+            const baseStorageCost = 5.00;
+            const baseDeliveryCost = 8.00;
+            const multipliers = {
+                'documentos': 1.0,
+                'ropa': 1.2,
+                'electronica': 1.5,
+                'alimentos': 1.3,
+                'fragil': 1.8,
+                'otros': 1.1
+            };
+            
+            const multiplier = multipliers[this.form.package_type] || 1.0;
+            
+            this.costs.storage_cost = (baseStorageCost * multiplier).toFixed(2);
+            this.costs.delivery_cost = (baseDeliveryCost * multiplier).toFixed(2);
+            this.costs.total_cost = (parseFloat(this.costs.storage_cost) + parseFloat(this.costs.delivery_cost)).toFixed(2);
+        },
+        
+        async submitForm() {
+            this.isSubmitting = true;
+            this.errors = {};
+            
+            // Validación básica
+            if (!this.form.customer_name.trim()) {
+                this.errors.customer_name = 'El nombre es requerido';
+            }
+            
+            if (!this.form.customer_phone.trim()) {
+                this.errors.customer_phone = 'El teléfono es requerido';
+            } else if (this.form.customer_phone.replace(/\D/g, '').length < 10) {
+                this.errors.customer_phone = 'El teléfono debe tener al menos 10 dígitos';
+            }
+            
+            if (!this.form.package_type) {
+                this.errors.package_type = 'El tipo de paquete es requerido';
+            }
+            
+            if (Object.keys(this.errors).length > 0) {
+                this.isSubmitting = false;
+                return;
+            }
+            
+            // Simular envío del formulario
+            setTimeout(() => {
+                this.trackingNumber = 'PAP' + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 4).toUpperCase();
+                this.isSubmitting = false;
+                
+                // Mostrar notificación de éxito
+                if (window.Alpine && window.Alpine.store) {
+                    window.Alpine.store('papyrus').addNotification('Paquete anunciado exitosamente', 'success');
+                }
+                
+                // Scroll al número de tracking
+                this.$nextTick(() => {
+                    document.querySelector('[x-text="trackingNumber"]')?.scrollIntoView({ behavior: 'smooth' });
+                });
+            }, 2000);
+        },
+        
+        resetForm() {
+            this.form = {
+                customer_name: '',
+                customer_phone: '',
+                package_type: '',
+                package_condition: 'nuevo',
+                observations: ''
+            };
+            this.errors = {};
+            this.trackingNumber = '';
+            this.costs = {
+                storage_cost: '0.00',
+                delivery_cost: '0.00',
+                total_cost: '0.00'
+            };
+        },
+        
+        copyTrackingNumber() {
+            if (this.trackingNumber) {
+                navigator.clipboard.writeText(this.trackingNumber).then(() => {
+                    if (window.Alpine && window.Alpine.store) {
+                        window.Alpine.store('papyrus').addNotification('Número de tracking copiado', 'success');
+                    }
+                });
+            }
+        }
+    }
+}
+</script>
