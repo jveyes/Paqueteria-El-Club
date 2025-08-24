@@ -220,6 +220,11 @@ coverage.xml
 .env.production
 .env.staging
 
+# Environment files with credentials
+.env
+.env.*
+!.env.example
+
 # SSL certificates
 ssl/
 *.pem
