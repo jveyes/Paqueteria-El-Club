@@ -7,12 +7,35 @@ rule_files:
   # - "second_rules.yml"
 
 scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # FastAPI Application
   - job_name: 'paqueteria-app'
     static_configs:
       - targets: ['app:8000']
     metrics_path: '/metrics'
-    scrape_interval: 5s
+    scrape_interval: 10s
 
-  - job_name: 'prometheus'
+  # PostgreSQL
+  - job_name: 'postgres'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['postgres:5432']
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Nginx
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    metrics_path: '/nginx_status'
+
+  # Node Exporter (if running on host)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
