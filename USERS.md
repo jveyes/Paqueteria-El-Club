@@ -25,7 +25,10 @@
 POST /api/auth/login
 Content-Type: application/x-www-form-urlencoded
 
+# Se puede usar username o email
 username=jveyes&password=il1111
+# O
+username=jveyes@gmail.com&password=il1111
 ```
 
 ### Verificar Autenticación
@@ -46,6 +49,7 @@ Authorization: Bearer <token>
 - **URL:** http://localhost/auth/login
 - **Método:** GET
 - **Estado:** ✅ Funcionando
+- **Nota:** Se puede usar email o username para iniciar sesión
 
 ### Registro
 - **URL:** http://localhost/auth/register
@@ -63,3 +67,4 @@ Authorization: Bearer <token>
 - Las contraseñas se hashean con bcrypt
 - Los tokens JWT tienen una duración de 30 minutos
 - El sistema está configurado para desarrollo sin contraseña en Redis
+- **Login flexible:** Se puede usar tanto username como email para iniciar sesión
