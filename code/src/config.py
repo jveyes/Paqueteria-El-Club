@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     
     # Cache Redis
-    redis_url: str = "redis://:Redis2025!Secure@redis:6379/0"
-    redis_password: str = "Redis2025!Secure"
+    redis_url: str = "redis://redis:6379/0"
+    redis_password: str = ""
     redis_host: str = "redis"
     redis_port: int = 6379
     redis_db: int = 0

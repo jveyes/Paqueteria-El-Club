@@ -6,8 +6,8 @@ from celery import Celery
 
 celery_app = Celery(
     "paqueteria", 
-    broker="redis://:Redis2025!Secure@redis:6379/0", 
-    backend="redis://:Redis2025!Secure@redis:6379/0"
+    broker="redis://redis:6379/0", 
+    backend="redis://redis:6379/0"
 )
 
 # Configuración optimizada para 50 usuarios
