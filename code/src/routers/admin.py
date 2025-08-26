@@ -79,6 +79,15 @@ async def create_user(
             detail="El correo electrónico ya existe"
         )
     
+    # Verificar restricción de admin único
+    if user_data.role == UserRole.ADMIN:
+        existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if existing_admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un usuario administrador en el sistema. Solo puede haber un admin."
+            )
+    
     # Crear nuevo usuario
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
@@ -134,6 +143,15 @@ async def update_user(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El correo electrónico ya existe"
+            )
+    
+    # Verificar restricción de admin único (solo si se está cambiando a admin)
+    if user_data.role == UserRole.ADMIN and user.role != UserRole.ADMIN:
+        existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if existing_admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un usuario administrador en el sistema. Solo puede haber un admin."
             )
     
     # Actualizar campos
@@ -212,6 +230,15 @@ async def delete_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No puedes eliminar tu propia cuenta"
         )
+    
+    # No permitir eliminar al único admin
+    if user.role == UserRole.ADMIN:
+        admin_count = db.query(User).filter(User.role == UserRole.ADMIN).count()
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No puedes eliminar al único administrador del sistema"
+            )
     
     db.delete(user)
     db.commit()

@@ -41,6 +41,15 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Usuario o email ya existe"
         )
     
+    # Verificar restricción de admin único
+    if user_data.role == UserRole.ADMIN:
+        existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if existing_admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un usuario administrador en el sistema. Solo puede haber un admin."
+            )
+    
     # Crear nuevo usuario
     hashed_password = get_password_hash(user_data.password)
     db_user = User(

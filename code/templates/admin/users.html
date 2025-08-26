@@ -107,14 +107,18 @@
                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-papyrus-blue focus:border-papyrus-blue sm:text-sm">
                 </div>
                 
-                <div>
-                    <label for="modal-role" class="block text-sm font-medium text-gray-700">Rol</label>
-                    <select id="modal-role" name="role" required
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-papyrus-blue focus:border-papyrus-blue sm:text-sm">
-                        <option value="OPERATOR">Operador</option>
-                        <option value="USER">Usuario</option>
-                    </select>
-                </div>
+                                    <div>
+                        <label for="modal-role" class="block text-sm font-medium text-gray-700">Rol</label>
+                        <select id="modal-role" name="role" required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-papyrus-blue focus:border-papyrus-blue sm:text-sm">
+                            <option value="OPERATOR">Operador</option>
+                            <option value="USER">Usuario</option>
+                            <option value="ADMIN" id="admin-option">Administrador</option>
+                        </select>
+                        <p id="admin-warning" class="hidden mt-1 text-xs text-red-600">
+                            ⚠️ Solo puede haber un administrador en el sistema
+                        </p>
+                    </div>
                 
                 <div id="password-fields">
                     <label for="modal-password" class="block text-sm font-medium text-gray-700">Contraseña</label>
@@ -166,7 +170,31 @@ function showMessage(type, message) {
 // Cargar usuarios al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     loadUsers();
+    checkAdminExists();
 });
+
+// Verificar si ya existe un admin
+async function checkAdminExists() {
+    try {
+        const response = await fetch('/api/admin/users');
+        const users = await response.json();
+        const hasAdmin = users.some(user => user.role === 'ADMIN');
+        
+        if (hasAdmin) {
+            // Ocultar opción de admin en el formulario
+            const adminOption = document.getElementById('admin-option');
+            const adminWarning = document.getElementById('admin-warning');
+            if (adminOption) {
+                adminOption.style.display = 'none';
+            }
+            if (adminWarning) {
+                adminWarning.classList.remove('hidden');
+            }
+        }
+    } catch (error) {
+        console.error('Error al verificar admin existente:', error);
+    }
+}
 
 // Cargar lista de usuarios
 async function loadUsers() {
