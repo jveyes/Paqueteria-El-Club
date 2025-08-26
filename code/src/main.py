@@ -22,7 +22,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from contextlib import asynccontextmanager
 import logging
 from datetime import datetime
@@ -225,6 +225,33 @@ async def auth_reset_password_page(request: Request):
     """Página de restablecimiento de contraseña - Pública"""
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("auth/reset-password.html", context)
+
+@app.post("/api/auth/forgot-password")
+async def forgot_password_api(request: Request):
+    """Endpoint temporal para forgot-password"""
+    try:
+        data = await request.json()
+        email = data.get("email")
+        
+        if not email:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Email es requerido"}
+            )
+        
+        # Simular envío exitoso
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
+                "email": email
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error interno: {str(e)}"}
+        )
 
 @app.get("/help")
 async def help_page(request: Request):
