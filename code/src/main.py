@@ -220,6 +220,12 @@ async def auth_forgot_password_page(request: Request):
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("auth/forgot-password.html", context)
 
+@app.get("/auth/reset-password")
+async def auth_reset_password_page(request: Request):
+    """Página de restablecimiento de contraseña - Pública"""
+    context = get_auth_context(request, is_authenticated=False)
+    return templates.TemplateResponse("auth/reset-password.html", context)
+
 @app.get("/help")
 async def help_page(request: Request):
     """Página de ayuda - Pública"""
