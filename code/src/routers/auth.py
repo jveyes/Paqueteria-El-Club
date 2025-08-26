@@ -17,7 +17,10 @@ from ..schemas.user import UserCreate, UserResponse, UserUpdate
 from ..utils.helpers import verify_password, get_password_hash
 from ..services.notification_service import NotificationService
 from ..config import settings
-from ..dependencies import create_access_token, oauth2_scheme
+from ..dependencies import create_access_token
+from fastapi.security import OAuth2PasswordBearer
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 

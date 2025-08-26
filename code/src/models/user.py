@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import uuid
 import enum
 
-from .base import BaseModel
 from ..database.database import Base
 
 class UserRole(str, enum.Enum):
@@ -18,7 +17,7 @@ class UserRole(str, enum.Enum):
     OPERATOR = "OPERATOR"
     USER = "USER"
 
-class User(BaseModel, Base):
+class User(Base):
     """Modelo de usuario del sistema"""
     __tablename__ = "users"
     
