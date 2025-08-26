@@ -1,0 +1,82 @@
+{% extends "components/base-public.html" %}
+
+{% block title %}Ejemplo de Página - PAQUETES EL CLUB v3.1{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-light text-gray-900 mb-4">
+            Ejemplo de Página
+        </h1>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            Esta es una página de ejemplo que muestra cómo usar la plantilla base con header y footer optimizados.
+        </p>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Card 1 -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <div class="flex items-center mb-4">
+                <div class="p-2 bg-papyrus-blue bg-opacity-10 rounded-lg">
+                    <svg class="w-6 h-6 text-papyrus-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 ml-3">Característica 1</h3>
+            </div>
+            <p class="text-gray-600">Descripción de la primera característica de la página de ejemplo.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <div class="flex items-center mb-4">
+                <div class="p-2 bg-papyrus-green bg-opacity-10 rounded-lg">
+                    <svg class="w-6 h-6 text-papyrus-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 ml-3">Característica 2</h3>
+            </div>
+            <p class="text-gray-600">Descripción de la segunda característica de la página de ejemplo.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <div class="flex items-center mb-4">
+                <div class="p-2 bg-papyrus-orange bg-opacity-10 rounded-lg">
+                    <svg class="w-6 h-6 text-papyrus-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 ml-3">Característica 3</h3>
+            </div>
+            <p class="text-gray-600">Descripción de la tercera característica de la página de ejemplo.</p>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="mt-12 text-center">
+        <div class="bg-gradient-to-r from-papyrus-blue to-blue-600 rounded-xl p-8 text-white">
+            <h2 class="text-2xl font-medium mb-4">¿Listo para comenzar?</h2>
+            <p class="text-blue-100 mb-6">Esta plantilla base está lista para ser utilizada en todas las nuevas páginas del proyecto.</p>
+            <button class="bg-white text-papyrus-blue px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                Comenzar Ahora
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Scripts específicos de esta página
+    console.log('Página de ejemplo cargada correctamente');
+    
+    // Ejemplo de funcionalidad específica
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aquí puedes agregar JavaScript específico de la página
+    });
+</script>
+{% endblock %}

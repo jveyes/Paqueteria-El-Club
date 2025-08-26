@@ -1,0 +1,372 @@
+# ========================================
+# PAQUETES EL CLUB v3.0 - Cursor Rules
+# ========================================
+
+## 🎯 **OBJETIVO DEL PROYECTO**
+Sistema de gestión de paquetería con tarifas automáticas, notificaciones multicanal y dashboard administrativo. 
+Enfoque en modularidad, escalabilidad y mantenibilidad del código.
+
+## 🏗️ **ARQUITECTURA Y PATRONES**
+
+### **Principios de Diseño**
+- **Separación de Responsabilidades**: Cada módulo tiene una responsabilidad específica
+- **Inversión de Dependencias**: Los routers dependen de servicios, no de modelos directamente
+- **Configuración Centralizada**: Todas las configuraciones en `src/config.py`
+- **Manejo de Errores Unificado**: Excepciones personalizadas en `src/utils/exceptions.py`
+- **Validaciones Centralizadas**: Funciones de validación en `src/utils/validators.py`
+
+### **Estructura de Capas**
+1. **Routers** (`src/routers/`): Manejo de HTTP requests/responses
+2. **Servicios** (`src/services/`): Lógica de negocio
+3. **Modelos** (`src/models/`): Entidades de base de datos
+4. **Esquemas** (`src/schemas/`): Validación de datos con Pydantic
+5. **Utilidades** (`src/utils/`): Funciones helper y validaciones
+6. **Configuración** (`src/config.py`): Variables de entorno centralizadas
+
+## 🐍 **PYTHON / FASTAPI**
+
+### **Convenciones de Código**
+- **PEP 8**: Seguir estándares de Python
+- **Type Hints**: Usar siempre type hints en funciones y métodos
+- **Docstrings**: Documentar todas las funciones públicas
+- **Nombres Descriptivos**: Variables y funciones con nombres claros
+- **Imports Organizados**: Agrupar imports por tipo (stdlib, third-party, local)
+
+### **FastAPI Específico**
+- **Dependency Injection**: Usar `Depends()` para inyección de dependencias
+- **Response Models**: Definir siempre modelos de respuesta con Pydantic
+- **Status Codes**: Usar códigos HTTP apropiados
+- **Async/Await**: Usar async para operaciones I/O
+- **Exception Handling**: Manejar excepciones con handlers personalizados
+
+### **Ejemplo de Router**
+```python
+@router.post("/", response_model=PackageResponse)
+async def create_package(
+    package_data: PackageCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> PackageResponse:
+    """Crear nuevo paquete con validaciones y notificaciones"""
+    package_service = PackageService(db)
+    return package_service.create_package(package_data)
+```
+
+## 🗄️ **SQLALCHEMY / BASE DE DATOS**
+
+### **Convenciones de Modelos**
+- **Herencia de BaseModel**: Todos los modelos heredan de `BaseModel`
+- **Relaciones Explícitas**: Definir todas las relaciones con `relationship()`
+- **Índices**: Crear índices para campos de búsqueda frecuente
+- **Constraints**: Usar constraints de base de datos apropiados
+- **Timestamps**: Incluir `created_at` y `updated_at` automáticamente
+
+### **Ejemplo de Modelo**
+```python
+class Package(BaseModel, Base):
+    __tablename__ = "packages"
+    
+    tracking_number = Column(String(50), unique=True, nullable=False, index=True)
+    status = Column(Enum(PackageStatus), default=PackageStatus.ANUNCIADO)
+    
+    # Relaciones
+    notifications = relationship("Notification", back_populates="package")
+    
+    def __repr__(self):
+        return f"<Package {self.tracking_number} - {self.status}>"
+```
+
+### **Migrations (Alembic)**
+- **Nombres Descriptivos**: Usar nombres que describan el cambio
+- **Rollback Seguro**: Siempre implementar `downgrade()`
+- **Datos de Prueba**: Incluir datos de prueba en migraciones cuando sea apropiado
+
+## 🔧 **SERVICIOS DE NEGOCIO**
+
+### **Principios de Servicios**
+- **Lógica de Negocio**: Toda la lógica compleja va en servicios
+- **Transacciones**: Manejar transacciones de base de datos apropiadamente
+- **Validaciones**: Validar datos antes de procesar
+- **Notificaciones**: Enviar notificaciones después de operaciones exitosas
+- **Logging**: Registrar operaciones importantes
+
+### **Ejemplo de Servicio**
+```python
+class PackageService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.rate_service = RateService(db)
+        self.notification_service = NotificationService(db)
+    
+    def create_package(self, package_data: PackageCreate) -> Package:
+        # Validaciones
+        # Cálculos de tarifas
+        # Crear en BD
+        # Enviar notificaciones
+        # Retornar resultado
+```
+
+## 🛡️ **SEGURIDAD Y VALIDACIÓN**
+
+### **Autenticación y Autorización**
+- **JWT Tokens**: Usar tokens JWT para autenticación
+- **Roles y Permisos**: Implementar sistema de roles (admin, operator, user)
+- **Password Hashing**: Usar bcrypt para hashing de contraseñas
+- **Rate Limiting**: Implementar límites de rate para APIs
+
+### **Validación de Datos**
+- **Pydantic Schemas**: Usar Pydantic para validación de entrada
+- **Validaciones Personalizadas**: Crear validadores específicos del dominio
+- **Sanitización**: Sanitizar datos de entrada
+- **Validaciones de Negocio**: Validar reglas de negocio en servicios
+
+### **Ejemplo de Validación**
+```python
+def validate_phone_number(phone: str) -> bool:
+    """Validar formato de número de teléfono colombiano"""
+    pattern = r'^(\+57\s?)?(3\d{2})\s?(\d{3})\s?(\d{4})$'
+    return bool(re.match(pattern, phone))
+```
+
+## 🐳 **DOCKER / CONTAINERS**
+
+### **Dockerfile**
+- **Multi-stage Builds**: Usar multi-stage para optimizar tamaño
+- **Security**: Ejecutar como usuario no-root
+- **Caching**: Optimizar capas para mejor caching
+- **Health Checks**: Incluir health checks apropiados
+
+### **Docker Compose**
+- **Networks**: Usar redes personalizadas para aislamiento
+- **Volumes**: Montar volúmenes para persistencia
+- **Environment Variables**: Usar archivos .env para configuración
+- **Dependencies**: Definir dependencias entre servicios
+
+## 📊 **MONITOREO Y LOGGING**
+
+### **Logging**
+- **Structured Logging**: Usar logging estructurado con contextos
+- **Log Levels**: Usar niveles apropiados (DEBUG, INFO, WARNING, ERROR)
+- **Log Rotation**: Configurar rotación de logs
+- **Centralized Logging**: Enviar logs a sistema centralizado
+
+### **Métricas**
+- **Prometheus**: Exponer métricas en formato Prometheus
+- **Custom Metrics**: Definir métricas específicas del negocio
+- **Health Checks**: Endpoints de health check
+- **Performance Monitoring**: Monitorear tiempos de respuesta
+
+## 🎨 **FRONTEND / TEMPLATES**
+
+### **HTML/Templates**
+- **Semantic HTML**: Usar HTML semántico apropiado
+- **Accessibility**: Seguir estándares de accesibilidad (WCAG 2.1 AA)
+- **Responsive Design**: Diseño mobile-first
+- **SEO**: Optimizar para motores de búsqueda
+
+### **Estructura de Páginas (OBLIGATORIO)**
+- **Header Completo**: Todas las páginas deben incluir el mismo header con navegación completa
+- **Footer Sticky**: Todas las páginas deben incluir el mismo footer sticky (pegado al fondo)
+- **Ancho Completo**: Tanto el header como el footer deben tener ancho completo (full-width)
+- **Layout Base**: Todas las páginas deben extender `components/base.html`
+- **Consistencia**: Mantener la misma estructura visual en todas las páginas
+- **Navegación**: Incluir navegación completa en el sidebar
+- **Responsive**: Asegurar que header y footer funcionen en móviles
+
+### **Tailwind CSS**
+- **Utility Classes**: Usar clases de utilidad de Tailwind
+- **Custom Components**: Crear componentes reutilizables
+- **Responsive**: Usar breakpoints apropiados
+- **Dark Mode**: Preparar para modo oscuro
+
+### **HTMX**
+- **Progressive Enhancement**: Mejorar funcionalidad gradualmente
+- **Loading States**: Mostrar estados de carga
+- **Error Handling**: Manejar errores apropiadamente
+- **Validation**: Validación del lado cliente
+
+### **Alpine.js**
+- **Reactivity**: Usar reactividad para UI dinámica
+- **State Management**: Manejar estado del componente
+- **Event Handling**: Manejar eventos apropiadamente
+- **Performance**: Optimizar para rendimiento
+
+## 🧪 **TESTING**
+
+### **Unit Tests**
+- **Pytest**: Usar pytest como framework de testing
+- **Fixtures**: Crear fixtures reutilizables
+- **Mocking**: Mockear dependencias externas
+- **Coverage**: Mantener cobertura de código alta
+
+### **Integration Tests**
+- **Database Testing**: Tests con base de datos real
+- **API Testing**: Tests de endpoints completos
+- **Authentication Testing**: Tests de autenticación
+- **Error Scenarios**: Tests de casos de error
+
+### **Frontend Testing (REGLAS ESPECÍFICAS)**
+- **NO realizar pruebas visuales automáticas**: El usuario realizará verificación visual manual
+- **NO crear scripts de testing visual**: No automatizar pruebas de apariencia o diseño
+- **Solo crear pruebas técnicas cuando se solicite**: Crear scripts de prueba únicamente cuando el usuario solicite investigar problemas específicos
+- **Enfoque en debugging**: Las pruebas deben enfocarse en diagnosticar por qué algo no funciona, dónde se carga algo, o por qué ocurre un comportamiento específico
+- **Documentar problemas**: Cuando se identifiquen problemas técnicos, documentarlos en `TEST/reports/` con detalles de diagnóstico
+
+### **Documentación Automática de Pruebas**
+- **SCRIPTS/**: Todos los scripts de automatización, despliegue y pruebas deben guardarse en `SCRIPTS/`
+- **TEST/**: Todos los reportes, resultados y documentación de pruebas deben guardarse en `TEST/`
+- **Estructura Obligatoria**: Cada script o prueba debe documentarse con:
+  - Descripción del propósito
+  - Comandos de ejecución
+  - Resultados esperados
+  - Dependencias requeridas
+  - Fecha de creación/actualización
+
+### **Reglas de Documentación de Scripts**
+```bash
+# Estructura obligatoria para scripts en SCRIPTS/
+#!/bin/bash
+# ========================================
+# PAQUETES EL CLUB v3.0 - [Nombre del Script]
+# ========================================
+#
+# 🎯 OBJETIVO: Descripción del propósito
+# 📅 FECHA: YYYY-MM-DD
+# 👤 AUTOR: [Nombre del desarrollador]
+# 🔄 VERSIÓN: [Versión del script]
+#
+# 📋 USO:
+#   ./script-name.sh [parámetros]
+#
+# 📊 RESULTADOS:
+#   - Archivo de log: logs/script-name.log
+#   - Reporte: TEST/reports/script-name-report.md
+#   - Datos: TEST/results/script-name/
+#
+# ⚠️ DEPENDENCIAS:
+#   - [Lista de dependencias]
+#
+# ========================================
+```
+
+### **Reglas de Documentación de Pruebas**
+```markdown
+# Estructura obligatoria para reportes en TEST/reports/
+# ========================================
+# PAQUETES EL CLUB v3.0 - [Nombre de la Prueba]
+# ========================================
+#
+# 🎯 OBJETIVO: Descripción del objetivo de la prueba
+# 📅 FECHA: YYYY-MM-DD HH:MM:SS
+# 👤 EJECUTOR: [Nombre del ejecutor]
+# 🔄 VERSIÓN: [Versión del sistema probado]
+#
+# 📊 RESULTADOS:
+#   - Estado: ✅ PASS / ❌ FAIL
+#   - Tiempo de ejecución: XX.XX segundos
+#   - Errores encontrados: X
+#   - Advertencias: X
+#
+# 🔍 DETALLES:
+#   [Comandos ejecutados y resultados]
+#
+# 📈 MÉTRICAS:
+#   [Métricas de rendimiento y calidad]
+#
+# ✅ CONCLUSIONES:
+#   [Resumen y recomendaciones]
+#
+# ========================================
+```
+
+### **Ejemplo de Test**
+```python
+def test_create_package_success(db_session):
+    """Test crear paquete exitosamente"""
+    package_service = PackageService(db_session)
+    package_data = PackageCreate(...)
+    
+    result = package_service.create_package(package_data)
+    
+    assert result.tracking_number.startswith("PAP")
+    assert result.status == PackageStatus.ANUNCIADO
+```
+
+## 📝 **DOCUMENTACIÓN**
+
+### **Código**
+- **Docstrings**: Documentar todas las funciones públicas
+- **Type Hints**: Usar type hints para documentar tipos
+- **Comments**: Comentar lógica compleja
+- **README**: Mantener README actualizado
+
+### **API Documentation**
+- **OpenAPI/Swagger**: Documentación automática con FastAPI
+- **Examples**: Incluir ejemplos de uso
+- **Error Responses**: Documentar respuestas de error
+- **Authentication**: Documentar autenticación
+
+## 🚀 **DEPLOYMENT**
+
+### **Environment Configuration**
+- **Environment Variables**: Usar variables de entorno para configuración
+- **Secrets Management**: Manejar secretos apropiadamente
+- **Configuration Validation**: Validar configuración al inicio
+- **Feature Flags**: Usar feature flags para funcionalidades
+
+### **CI/CD**
+- **Automated Testing**: Tests automáticos en pipeline
+- **Code Quality**: Checks de calidad de código
+- **Security Scanning**: Escaneo de vulnerabilidades
+- **Automated Deployment**: Despliegue automático
+
+## 🔍 **DEBUGGING Y TROUBLESHOOTING**
+
+### **Logging**
+- **Structured Logs**: Logs estructurados para fácil parsing
+- **Context Information**: Incluir contexto relevante
+- **Error Tracking**: Integrar con sistema de tracking de errores
+- **Performance Logging**: Log de métricas de rendimiento
+
+### **Development Tools**
+- **Hot Reload**: Configurar hot reload para desarrollo
+- **Debug Mode**: Modo debug con información detallada
+- **Database Tools**: Herramientas para inspeccionar BD
+- **API Testing**: Herramientas para probar APIs
+
+## 📋 **CHECKLIST DE CALIDAD**
+
+### **Antes de Commit**
+- [ ] Tests pasan
+- [ ] Linting sin errores
+- [ ] Type checking sin errores
+- [ ] Documentación actualizada
+- [ ] Logs apropiados agregados
+- [ ] Manejo de errores implementado
+
+### **Antes de Deploy**
+- [ ] Tests de integración pasan
+- [ ] Performance tests pasan
+- [ ] Security scan limpio
+- [ ] Configuración validada
+- [ ] Backup configurado
+- [ ] Monitoring configurado
+
+---
+
+## 🎯 **PRIORIDADES DE DESARROLLO**
+
+1. **Funcionalidad Core**: Paquetes, clientes, tarifas
+2. **Autenticación**: Sistema de usuarios y roles
+3. **Notificaciones**: Email y SMS
+4. **Dashboard**: Métricas y reportes
+5. **Optimización**: Performance y escalabilidad
+6. **Seguridad**: Hardening y auditoría
+7. **UX/UI**: Mejoras de interfaz
+8. **Integración**: APIs externas
+
+---
+
+**Última actualización**: Enero 2025  
+**Versión**: 3.0.0  
+**Mantenido por**: Equipo de Desarrollo PAQUETES EL CLUB

@@ -1,0 +1,350 @@
+<!-- Formulario de Consulta de Estado - PAPYRUS -->
+<div class="min-h-screen bg-gray-50 py-12" x-data="trackPackageForm()">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header del formulario -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Consultar Estado del Paquete</h1>
+            <p class="text-gray-600">Ingrese su número de tracking para ver el estado actual de su paquete</p>
+        </div>
+
+        <!-- Formulario de búsqueda -->
+        <div class="papyrus-card p-8 mb-8">
+            <form @submit.prevent="searchPackage" hx-post="/api/packages/track" hx-target="#tracking-result">
+                <div class="max-w-2xl mx-auto">
+                    <div class="mb-6">
+                        <label for="tracking_number" class="block text-sm font-medium text-gray-700 mb-2">
+                            Número de Tracking *
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="tracking_number" 
+                                   name="tracking_number" 
+                                   x-model="trackingNumber"
+                                   class="papyrus-input w-full pr-12"
+                                   :class="{ 'border-red-500': errors.tracking_number }"
+                                   placeholder="Ej: PAP123456ABC"
+                                   required>
+                            <button type="submit" 
+                                    :disabled="isSearching"
+                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                    :class="{ 'opacity-50 cursor-not-allowed': isSearching }">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p x-show="errors.tracking_number" class="text-red-500 text-sm mt-1" x-text="errors.tracking_number"></p>
+                    </div>
+                    
+                    <button type="submit" 
+                            :disabled="isSearching"
+                            class="papyrus-button w-full flex items-center justify-center"
+                            :class="{ 'opacity-50 cursor-not-allowed': isSearching }">
+                        <svg x-show="isSearching" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="isSearching ? 'Buscando...' : 'Consultar Estado'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Resultado de la búsqueda -->
+        <div id="tracking-result">
+            <!-- Estado del paquete encontrado -->
+            <div x-show="packageFound" class="papyrus-card p-8 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Estado del Paquete</h2>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">Tracking:</span>
+                        <span class="font-mono font-bold text-red-600" x-text="packageData.tracking_number"></span>
+                        <button @click="copyTrackingNumber" class="text-gray-400 hover:text-red-600 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Información del paquete -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información del Cliente</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-sm text-gray-500">Nombre:</span>
+                                <div class="font-medium text-gray-900" x-text="packageData.customer_name"></div>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Teléfono:</span>
+                                <div class="font-medium text-gray-900" x-text="packageData.customer_phone"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Detalles del Paquete</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-sm text-gray-500">Tipo:</span>
+                                <div class="font-medium text-gray-900 capitalize" x-text="packageData.package_type"></div>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Estado:</span>
+                                <div class="font-medium text-gray-900 capitalize" x-text="packageData.package_condition"></div>
+                            </div>
+                            <div x-show="packageData.observations">
+                                <span class="text-sm text-gray-500">Observaciones:</span>
+                                <div class="font-medium text-gray-900" x-text="packageData.observations"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado actual -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Estado Actual</h3>
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 rounded-full" 
+                                     :class="{
+                                         'bg-yellow-500': packageData.status === 'anunciado',
+                                         'bg-blue-500': packageData.status === 'recibido',
+                                         'bg-green-500': packageData.status === 'entregado',
+                                         'bg-red-500': packageData.status === 'cancelado'
+                                     }"></div>
+                                <span class="text-lg font-semibold capitalize" 
+                                      :class="{
+                                          'text-yellow-700': packageData.status === 'anunciado',
+                                          'text-blue-700': packageData.status === 'recibido',
+                                          'text-green-700': packageData.status === 'entregado',
+                                          'text-red-700': packageData.status === 'cancelado'
+                                      }" 
+                                      x-text="getStatusText(packageData.status)"></span>
+                            </div>
+                            <div class="text-sm text-gray-500" x-text="getStatusDate(packageData.status)"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline de estados -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Historial de Estados</h3>
+                    <div class="space-y-4">
+                        <template x-for="(status, index) in statusTimeline" :key="index">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                                         :class="{
+                                             'bg-green-500': status.completed,
+                                             'bg-gray-300': !status.completed
+                                         }">
+                                        <svg x-show="status.completed" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <svg x-show="!status.completed" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900" x-text="status.title"></div>
+                                    <div class="text-sm text-gray-500" x-text="status.description"></div>
+                                    <div x-show="status.date" class="text-xs text-gray-400 mt-1" x-text="status.date"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Información de costos -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Información de Costos</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-red-600" x-text="'$' + (packageData.storage_cost || '0.00')"></div>
+                            <div class="text-sm text-gray-600">Costo de Almacenamiento</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-red-600" x-text="'$' + (packageData.delivery_cost || '0.00')"></div>
+                            <div class="text-sm text-gray-600">Costo de Entrega</div>
+                        </div>
+                        <div class="text-center bg-red-600 text-white rounded-lg p-4">
+                            <div class="text-2xl font-bold" x-text="'$' + (packageData.total_cost || '0.00')"></div>
+                            <div class="text-sm opacity-90">Costo Total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paquete no encontrado -->
+            <div x-show="packageNotFound" class="papyrus-card p-8 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Paquete No Encontrado</h3>
+                <p class="text-gray-600 mb-6">El número de tracking ingresado no corresponde a ningún paquete en nuestro sistema.</p>
+                <div class="space-y-2 text-sm text-gray-500">
+                    <p>Verifique que el número sea correcto o contacte a soporte si necesita ayuda.</p>
+                    <p>Número buscado: <span class="font-mono font-medium" x-text="trackingNumber"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="mt-8 papyrus-card p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">¿Necesita Ayuda?</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Preguntas Frecuentes</h4>
+                    <p class="text-sm text-gray-600">Encuentre respuestas a las preguntas más comunes</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Contacto Directo</h4>
+                    <p class="text-sm text-gray-600">Llámenos o envíenos un mensaje</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Guía de Uso</h4>
+                    <p class="text-sm text-gray-600">Aprenda cómo usar nuestro sistema</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function trackPackageForm() {
+    return {
+        trackingNumber: '',
+        errors: {},
+        isSearching: false,
+        packageFound: false,
+        packageNotFound: false,
+        packageData: {},
+        statusTimeline: [],
+        
+        async searchPackage() {
+            this.isSearching = true;
+            this.errors = {};
+            this.packageFound = false;
+            this.packageNotFound = false;
+            
+            // Validación
+            if (!this.trackingNumber.trim()) {
+                this.errors.tracking_number = 'El número de tracking es requerido';
+                this.isSearching = false;
+                return;
+            }
+            
+            // Simular búsqueda
+            setTimeout(() => {
+                // Simular datos de paquete encontrado
+                if (this.trackingNumber.toUpperCase().startsWith('PAP')) {
+                    this.packageData = {
+                        tracking_number: this.trackingNumber.toUpperCase(),
+                        customer_name: 'Juan Pérez',
+                        customer_phone: '(123) 456-7890',
+                        package_type: 'documentos',
+                        package_condition: 'nuevo',
+                        observations: 'Paquete importante, manejar con cuidado',
+                        status: 'recibido',
+                        storage_cost: '5.00',
+                        delivery_cost: '8.00',
+                        total_cost: '13.00',
+                        announced_at: '2024-01-15T10:30:00',
+                        received_at: '2024-01-16T14:20:00'
+                    };
+                    
+                    this.statusTimeline = [
+                        {
+                            title: 'Paquete Anunciado',
+                            description: 'El cliente ha anunciado el paquete en el sistema',
+                            completed: true,
+                            date: '15 Ene 2024, 10:30 AM'
+                        },
+                        {
+                            title: 'Paquete Recibido',
+                            description: 'El paquete ha sido recibido en nuestras instalaciones',
+                            completed: true,
+                            date: '16 Ene 2024, 2:20 PM'
+                        },
+                        {
+                            title: 'En Proceso de Entrega',
+                            description: 'El paquete está siendo preparado para entrega',
+                            completed: false,
+                            date: null
+                        },
+                        {
+                            title: 'Entregado',
+                            description: 'El paquete ha sido entregado exitosamente',
+                            completed: false,
+                            date: null
+                        }
+                    ];
+                    
+                    this.packageFound = true;
+                } else {
+                    this.packageNotFound = true;
+                }
+                
+                this.isSearching = false;
+            }, 1500);
+        },
+        
+        getStatusText(status) {
+            const statusMap = {
+                'anunciado': 'Anunciado',
+                'recibido': 'Recibido',
+                'entregado': 'Entregado',
+                'cancelado': 'Cancelado'
+            };
+            return statusMap[status] || status;
+        },
+        
+        getStatusDate(status) {
+            const dateMap = {
+                'anunciado': '15 Ene 2024, 10:30 AM',
+                'recibido': '16 Ene 2024, 2:20 PM',
+                'entregado': '17 Ene 2024, 11:00 AM',
+                'cancelado': '16 Ene 2024, 3:45 PM'
+            };
+            return dateMap[status] || '';
+        },
+        
+        copyTrackingNumber() {
+            if (this.packageData.tracking_number) {
+                navigator.clipboard.writeText(this.packageData.tracking_number).then(() => {
+                    if (window.Alpine && window.Alpine.store) {
+                        window.Alpine.store('papyrus').addNotification('Número de tracking copiado', 'success');
+                    }
+                });
+            }
+        }
+    }
+}
+</script>
