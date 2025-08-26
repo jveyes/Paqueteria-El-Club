@@ -62,8 +62,10 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Iniciar sesión"""
-    # Buscar usuario
-    user = db.query(User).filter(User.username == form_data.username).first()
+    # Buscar usuario por username o email
+    user = db.query(User).filter(
+        (User.username == form_data.username) | (User.email == form_data.username)
+    ).first()
     
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
