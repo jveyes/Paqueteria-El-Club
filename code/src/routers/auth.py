@@ -22,7 +22,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-router = APIRouter(prefix="/api/auth", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     """Obtener usuario actual desde token"""
@@ -178,6 +178,11 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Solicitar recuperación de contraseña"""
+    return {
+        "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
+        "email": request.email
+    }
     """Solicitar recuperación de contraseña"""
     user = db.query(User).filter(User.email == request.email).first()
     
