@@ -68,6 +68,7 @@ services:
     volumes:
       # Volúmenes para desarrollo - cambios en tiempo real
       - ./code:/app/code
+      - ./code/static:/app/static
       - ./uploads:/app/uploads
       - ./logs:/app/logs
       - ./database:/app/database
