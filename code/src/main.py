@@ -228,7 +228,14 @@ async def help_page(request: Request):
 
 @app.get("/dashboard")
 async def dashboard_page(request: Request):
-    """Dashboard administrativo"""
+    """Dashboard administrativo - Solo para usuarios autenticados"""
+    # Verificar autenticación
+    context = await get_auth_context_from_request(request)
+    
+    if not context["is_authenticated"]:
+        # Redirigir a login si no está autenticado
+        return RedirectResponse(url="/auth/login?redirect=/dashboard", status_code=302)
+    
     # Datos de ejemplo para el dashboard
     stats = {
         "total_packages": 150,
@@ -242,11 +249,55 @@ async def dashboard_page(request: Request):
         {"id": 2, "tracking_number": "XYZ789", "customer_name": "María García", "status": "delivered"}
     ]
     
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    # Agregar información del usuario al contexto
+    context.update({
         "stats": stats,
         "recent_packages": recent_packages
     })
+    
+    return templates.TemplateResponse("dashboard.html", context)
+
+@app.get("/profile")
+async def profile_page(request: Request):
+    """Página de perfil de usuario - Solo para usuarios autenticados"""
+    # Verificar autenticación
+    context = await get_auth_context_from_request(request)
+    
+    if not context["is_authenticated"]:
+        # Redirigir a login si no está autenticado
+        return RedirectResponse(url="/auth/login?redirect=/profile", status_code=302)
+    
+    return templates.TemplateResponse("auth/profile.html", context)
+
+@app.get("/admin/users")
+async def admin_users_page(request: Request):
+    """Página de gestión de usuarios - Solo para administradores"""
+    # Verificar autenticación
+    context = await get_auth_context_from_request(request)
+    
+    if not context["is_authenticated"]:
+        # Redirigir a login si no está autenticado
+        return RedirectResponse(url="/auth/login?redirect=/admin/users", status_code=302)
+    
+    # Verificar que sea admin
+    if context.get("user_role") != "ADMIN":
+        # Redirigir a dashboard si no es admin
+        return RedirectResponse(url="/dashboard", status_code=302)
+    
+    return templates.TemplateResponse("admin/users.html", context)
+
+@app.get("/auth/logout")
+async def logout_page(request: Request):
+    """Página de logout - Limpia cookies y redirige"""
+    response = RedirectResponse(url="/auth/login", status_code=302)
+    
+    # Limpiar cookies de autenticación
+    response.delete_cookie("access_token")
+    response.delete_cookie("user_id")
+    response.delete_cookie("user_name")
+    response.delete_cookie("user_role")
+    
+    return response
 
 @app.get("/health")
 async def health_check():

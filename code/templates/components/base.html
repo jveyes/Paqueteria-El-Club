@@ -187,13 +187,31 @@
                 <div class="hidden md:flex items-center">
                     {% if is_authenticated %}
                     <!-- Usuario autenticado -->
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-700">{{ user_name|default('Usuario') }}</span>
-                        <a href="/logout" class="p-2 text-gray-700 hover:text-papyrus-blue hover:bg-gray-50 rounded-lg transition-colors" title="Cerrar Sesión">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    <div x-data="{ userMenuOpen: false }" class="relative">
+                        <button @click="userMenuOpen = !userMenuOpen" class="flex items-center space-x-2 text-gray-700 hover:text-papyrus-blue transition-colors">
+                            <span class="text-sm font-medium">{{ user_name|default('Usuario') }}</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
-                        </a>
+                        </button>
+                        
+                        <!-- Dropdown del menú de usuario -->
+                        <div x-show="userMenuOpen" 
+                             @click.away="userMenuOpen = false"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mi Perfil</a>
+                            {% if user_role == "ADMIN" %}
+                            <a href="/admin/users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Gestión de Usuarios</a>
+                            {% endif %}
+                            <hr class="my-1">
+                            <a href="/auth/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Cerrar Sesión</a>
+                        </div>
                     </div>
                     {% else %}
                     <!-- Usuario no autenticado -->

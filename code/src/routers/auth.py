@@ -61,10 +61,11 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Iniciar sesión"""
-    # Buscar usuario por username o email
+    """Iniciar sesión - Case insensitive"""
+    # Buscar usuario por username o email (case insensitive)
+    username_or_email = form_data.username.lower()
     user = db.query(User).filter(
-        (User.username == form_data.username) | (User.email == form_data.username)
+        (User.username.ilike(username_or_email)) | (User.email.ilike(username_or_email))
     ).first()
     
     if not user or not verify_password(form_data.password, user.password_hash):
@@ -161,3 +162,67 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
     return {
         "message": "Contraseña actualizada exitosamente"
     }
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    user_data: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Actualizar perfil del usuario actual"""
+    # Verificar si el username ya existe (excluyendo el usuario actual)
+    if user_data.username != current_user.username:
+        existing_user = db.query(User).filter(User.username == user_data.username).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El nombre de usuario ya existe"
+            )
+    
+    # Verificar si el email ya existe (excluyendo el usuario actual)
+    if user_data.email != current_user.email:
+        existing_email = db.query(User).filter(User.email == user_data.email).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El correo electrónico ya existe"
+            )
+    
+    # Actualizar campos
+    current_user.username = user_data.username
+    current_user.email = user_data.email
+    current_user.first_name = user_data.first_name
+    current_user.last_name = user_data.last_name
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+@router.post("/change-password")
+async def change_password(
+    current_password: str,
+    new_password: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Cambiar contraseña del usuario actual"""
+    # Verificar contraseña actual
+    if not verify_password(current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Contraseña actual incorrecta"
+        )
+    
+    # Validar nueva contraseña
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe tener al menos 8 caracteres"
+        )
+    
+    # Actualizar contraseña
+    current_user.password_hash = get_password_hash(new_password)
+    db.commit()
+    
+    return {"message": "Contraseña cambiada exitosamente"}
