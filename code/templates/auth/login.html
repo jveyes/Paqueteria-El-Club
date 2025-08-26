@@ -183,22 +183,57 @@
         loginButtonText.textContent = 'Iniciando sesión...';
         hideError();
         
-        // Simular envío de formulario (aquí iría la llamada real a la API)
-        setTimeout(() => {
-            // Simular respuesta exitosa
-            if (email === 'admin@papyrus.com' && password === 'admin123') {
-                // Simular login exitoso
-                if (typeof simulateLogin === 'function') {
-                    simulateLogin(email, 'Administrador');
-                }
-                // Redirigir al dashboard
-                window.location.href = '/dashboard';
-            } else {
-                // Mostrar error
-                showError('Credenciales incorrectas. Por favor, verifica tu correo y contraseña.');
-                resetButton();
+        // Realizar llamada a la API de login
+        fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'username': email,
+                'password': password
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        }, 2000);
+            return response.json();
+        })
+        .then(data => {
+            // Login exitoso
+            console.log('Login exitoso:', data);
+            
+            // Guardar token en localStorage para el frontend
+            if (data.access_token) {
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('user_info', JSON.stringify(data.user));
+            }
+            
+            // Simular login en el header (si existe la función)
+            if (typeof simulateLogin === 'function') {
+                simulateLogin(data.user.username, data.user.first_name);
+            }
+            
+            // Redirigir según el parámetro redirect o al dashboard por defecto
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect') || '/dashboard';
+            window.location.href = redirectUrl;
+        })
+        .catch(error => {
+            console.error('Error en login:', error);
+            
+            // Mostrar mensaje de error apropiado
+            if (error.message.includes('401')) {
+                showError('Credenciales incorrectas. Por favor, verifica tu correo y contraseña.');
+            } else if (error.message.includes('400')) {
+                showError('Usuario inactivo. Contacta al administrador.');
+            } else {
+                showError('Error de conexión. Por favor, intenta nuevamente.');
+            }
+            
+            resetButton();
+        });
     });
     
     function showError(message) {
@@ -229,5 +264,32 @@
     // Limpiar error cuando el usuario empiece a escribir
     document.getElementById('email').addEventListener('input', hideError);
     document.getElementById('password').addEventListener('input', hideError);
+    
+    // Verificar si ya está autenticado al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            // Verificar si el token es válido
+            fetch('/api/auth/check', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_authenticated) {
+                    // Ya está autenticado, redirigir
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirectUrl = urlParams.get('redirect') || '/dashboard';
+                    window.location.href = redirectUrl;
+                }
+            })
+            .catch(error => {
+                // Token inválido, limpiar localStorage
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_info');
+            });
+        }
+    });
 </script>
 {% endblock %}

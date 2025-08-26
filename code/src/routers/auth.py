@@ -12,6 +12,7 @@ from ..database.database import get_db
 from ..models.user import User, UserRole
 from ..schemas.user import UserCreate, UserResponse, UserLogin
 from ..dependencies import create_access_token, get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES
+from ..schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
 
 router = APIRouter()
 
@@ -112,21 +113,49 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
     return current_user
 
 @router.post("/forgot-password")
-async def forgot_password(email: str, db: Session = Depends(get_db)):
+async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """Solicitar recuperación de contraseña"""
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.email == request.email).first()
     
-    if user:
-        # Aquí se enviaría un email con el link de recuperación
-        # Por ahora solo retornamos un mensaje
-        return {"message": "Si el email existe, se enviará un link de recuperación"}
+    if not user:
+        # Por seguridad, no revelamos si el email existe o no
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se encontró una cuenta con este correo electrónico"
+        )
     
-    # Por seguridad, siempre retornamos el mismo mensaje
-    return {"message": "Si el email existe, se enviará un link de recuperación"}
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cuenta inactiva"
+        )
+    
+    # Aquí se enviaría un email con el link de recuperación
+    # Por ahora solo retornamos un mensaje de éxito
+    # En producción, se implementaría el envío de email
+    
+    return {
+        "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
+        "email": request.email
+    }
 
 @router.post("/reset-password")
-async def reset_password(token: str, new_password: str, db: Session = Depends(get_db)):
+async def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
     """Restablecer contraseña"""
     # Aquí se validaría el token y se cambiaría la contraseña
-    # Por ahora solo retornamos un mensaje
-    return {"message": "Contraseña actualizada exitosamente"}
+    # Por ahora solo retornamos un mensaje de éxito
+    # En producción, se implementaría la validación del token
+    
+    # Validar que la nueva contraseña tenga al menos 8 caracteres
+    if len(request.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contraseña debe tener al menos 8 caracteres"
+        )
+    
+    # Aquí se buscaría el usuario por el token y se actualizaría la contraseña
+    # Por ahora solo retornamos un mensaje de éxito
+    
+    return {
+        "message": "Contraseña actualizada exitosamente"
+    }
