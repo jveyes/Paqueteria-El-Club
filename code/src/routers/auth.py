@@ -2,7 +2,7 @@
 # PAQUETES EL CLUB v3.0 - Router de Autenticación
 # ========================================
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 
 from ..database.database import get_db
 from ..models.user import User, UserRole
-from ..schemas.user import UserCreate, UserResponse, UserLogin
+from ..schemas.user import UserCreate, UserResponse, UserLogin, UserUpdate
 from ..dependencies import create_access_token, get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from ..schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
 
@@ -201,8 +201,8 @@ async def update_profile(
 
 @router.post("/change-password")
 async def change_password(
-    current_password: str,
-    new_password: str,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):

@@ -9,7 +9,7 @@ from ..database.database import get_db
 from ..models.user import User, UserRole
 from ..schemas.user import UserCreate, UserUpdate, UserResponse
 from ..dependencies import get_current_user
-from ..utils.helpers import verify_password, get_password_hash
+from ..routers.auth import verify_password, get_password_hash
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
