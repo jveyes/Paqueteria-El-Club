@@ -179,11 +179,6 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """Solicitar recuperación de contraseña"""
-    return {
-        "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
-        "email": request.email
-    }
-    """Solicitar recuperación de contraseña"""
     user = db.query(User).filter(User.email == request.email).first()
     
     if not user:

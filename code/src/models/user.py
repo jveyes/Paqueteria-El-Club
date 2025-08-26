@@ -21,14 +21,17 @@ class User(Base):
     """Modelo de usuario del sistema"""
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column("password_hash", String(255), nullable=False)
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
+    phone = Column(String(20), nullable=True)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    permissions = Column(Text, nullable=True)
+    last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -46,7 +49,7 @@ class PasswordResetToken(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     token = Column(String(255), unique=True, nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

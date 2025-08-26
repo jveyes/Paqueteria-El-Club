@@ -176,37 +176,141 @@ class NotificationService:
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Restablecimiento de Contraseña</title>
+                <title>Restablecimiento de Contraseña - PAQUETES EL CLUB</title>
                 <style>
-                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                    .header {{ background-color: #3B82F6; color: white; padding: 20px; text-align: center; }}
-                    .content {{ padding: 20px; background-color: #f9f9f9; }}
-                    .button {{ display: inline-block; background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
-                    .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+                    body {{ 
+                        font-family: Arial, sans-serif; 
+                        line-height: 1.6; 
+                        color: #333; 
+                        margin: 0; 
+                        padding: 20px; 
+                        background-color: #ffffff;
+                    }}
+                    .container {{ 
+                        max-width: 600px; 
+                        margin: 0 auto; 
+                        background-color: #ffffff; 
+                        padding: 20px;
+                    }}
+                    .header {{ 
+                        text-align: center; 
+                        padding: 20px 0; 
+                        border-bottom: 1px solid #ccc;
+                        margin-bottom: 20px;
+                    }}
+                    .service-name {{
+                        font-size: 20px;
+                        font-weight: bold;
+                        margin: 0 0 5px 0;
+                        color: #333;
+                    }}
+                    .service-subtitle {{
+                        font-size: 14px;
+                        margin: 0;
+                        color: #666;
+                    }}
+                    .content {{ 
+                        padding: 20px 0;
+                    }}
+                    .greeting {{
+                        font-size: 16px;
+                        color: #333;
+                        margin-bottom: 15px;
+                        font-weight: bold;
+                    }}
+                    .message {{
+                        font-size: 14px;
+                        color: #333;
+                        margin-bottom: 15px;
+                        line-height: 1.5;
+                    }}
+                    .button-container {{
+                        text-align: center;
+                        margin: 25px 0;
+                    }}
+                    .button {{ 
+                        display: inline-block; 
+                        background-color: #007bff; 
+                        color: white; 
+                        padding: 12px 25px; 
+                        text-decoration: none; 
+                        border-radius: 4px; 
+                        font-weight: bold;
+                        font-size: 14px;
+                    }}
+                    .warning {{
+                        background-color: #f9f9f9;
+                        border: 1px solid #ddd;
+                        padding: 12px;
+                        margin: 15px 0;
+                        border-radius: 4px;
+                        text-align: center;
+                        color: #333;
+                        font-size: 13px;
+                    }}
+                    .link-container {{
+                        background-color: #f9f9f9;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                        padding: 12px;
+                        margin: 15px 0;
+                        text-align: center;
+                    }}
+                    .link-text {{
+                        word-break: break-all; 
+                        color: #333; 
+                        font-family: monospace;
+                        font-size: 12px;
+                        margin: 5px 0;
+                    }}
+                    .footer {{ 
+                        text-align: center; 
+                        padding: 20px 0; 
+                        border-top: 1px solid #ccc;
+                        margin-top: 20px;
+                        color: #666;
+                        font-size: 12px;
+                    }}
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>PAQUETES EL CLUB</h1>
-                        <p>Restablecimiento de Contraseña</p>
+                        <div class="service-name">PAQUETES EL CLUB</div>
+                        <div class="service-subtitle">Restablecimiento de Contraseña</div>
                     </div>
+                    
                     <div class="content">
-                        <h2>Hola {user.first_name},</h2>
-                        <p>Has solicitado restablecer tu contraseña en PAQUETES EL CLUB.</p>
-                        <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
-                        <div style="text-align: center;">
-                            <a href="{reset_url}" class="button">Restablecer Contraseña</a>
+                        <div class="greeting">¡Hola {user.first_name}!</div>
+                        
+                        <div class="message">
+                            Has solicitado restablecer tu contraseña en PAQUETES EL CLUB, nuestro sistema de gestión de paquetería.
                         </div>
-                        <p><strong>Este enlace expirará en 1 hora por seguridad.</strong></p>
-                        <p>Si no solicitaste este cambio, puedes ignorar este email.</p>
-                        <p>Si tienes problemas con el botón, copia y pega este enlace en tu navegador:</p>
-                        <p style="word-break: break-all; color: #666;">{reset_url}</p>
+                        
+                        <div class="message">
+                            Haz clic en el siguiente botón para crear una nueva contraseña de forma segura:
+                        </div>
+                        
+                        <div class="button-container">
+                            <a href="{reset_url}" class="button">
+                                Restablecer Contraseña
+                            </a>
+                        </div>
+                        
+                        <div class="warning">
+                            <strong>IMPORTANTE:</strong> Este enlace expirará en 1 hora por seguridad.
+                        </div>
+                        
+                        <div class="link-container">
+                            <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                            <p class="link-text">{reset_url}</p>
+                        </div>
                     </div>
+                    
                     <div class="footer">
-                        <p>Este es un email automático, no respondas a este mensaje.</p>
-                        <p>PAQUETES EL CLUB - Sistema de Gestión de Paquetería</p>
+                        <p>Si no solicitaste este cambio, puedes ignorar este email de forma segura.</p>
+                        <p>Este es un email automático, por favor no respondas a este mensaje.</p>
+                        <p>Desarrollado por JEMAVI para PAPYRUS</p>
                     </div>
                 </div>
             </body>

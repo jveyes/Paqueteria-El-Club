@@ -253,6 +253,84 @@ async def forgot_password_api(request: Request):
             content={"detail": f"Error interno: {str(e)}"}
         )
 
+@app.post("/api/auth/login-test")
+async def login_test_api(request: Request):
+    """Endpoint temporal para login"""
+    try:
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+        
+        if not username or not password:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Username y password son requeridos"}
+            )
+        
+        # Simular login exitoso
+        return JSONResponse(
+            status_code=200,
+            content={
+                "access_token": "test_token",
+                "token_type": "bearer",
+                "user": {
+                    "id": "test_id",
+                    "username": username,
+                    "email": username,
+                    "first_name": "Test",
+                    "last_name": "User",
+                    "role": "ADMIN"
+                }
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error interno: {str(e)}"}
+        )
+
+@app.post("/api/auth/login-simple")
+async def login_simple_api(request: Request):
+    """Endpoint simple para login con form data"""
+    try:
+        form_data = await request.form()
+        username = form_data.get("username")
+        password = form_data.get("password")
+        
+        if not username or not password:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Username y password son requeridos"}
+            )
+        
+        # Verificar credenciales (simulado)
+        if username == "jveyes@gmail.com" and password == "il1111":
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "access_token": "test_token_123",
+                    "token_type": "bearer",
+                    "user": {
+                        "id": "test_id_123",
+                        "username": username,
+                        "email": username,
+                        "first_name": "JESUS",
+                        "last_name": "VILLALOBOS",
+                        "role": "ADMIN"
+                    }
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Credenciales incorrectas"}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error interno: {str(e)}"}
+        )
+
 @app.get("/help")
 async def help_page(request: Request):
     """Página de ayuda - Pública"""

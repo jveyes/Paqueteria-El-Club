@@ -19,7 +19,7 @@ def upgrade():
     op.create_table('password_reset_tokens',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('token', sa.String(length=255), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('expires_at', sa.DateTime(), nullable=False),
         sa.Column('used', sa.Boolean(), nullable=False, default=False),
         sa.Column('created_at', sa.DateTime(), nullable=False, default=sa.func.now()),
