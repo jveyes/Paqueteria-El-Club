@@ -1,6 +1,6 @@
 # 🌿 Git Workflow - Sistema de Paquetería EL CLUB
 
-## 📋 **Estrategia de Ramas**
+## 📋 **Estrategia de Ramas Simplificada**
 
 ### **Ramas Principales:**
 
@@ -11,75 +11,32 @@
 - **Releases:** Tags de versiones estables
 
 #### 🔄 **develop** (Desarrollo)
-- **Propósito:** Integración de features y testing
+- **Propósito:** Desarrollo activo y testing
 - **Origen:** Rama principal de desarrollo
-- **Protección:** Commits directos permitidos para desarrollo
+- **Protección:** Commits directos permitidos
 - **Testing:** Ambiente de pruebas integrado
 
-### **Ramas de Features:**
+## 🔄 **Flujo de Trabajo Simplificado**
 
-#### 🚀 **feature/nombre-feature**
-- **Propósito:** Desarrollo de funcionalidades específicas
-- **Origen:** Desde `develop`
-- **Destino:** Merge a `develop` cuando esté completo
-- **Ejemplos:**
-  - `feature/user-authentication`
-  - `feature/package-tracking`
-  - `feature/payment-integration`
-
-#### 🐛 **hotfix/nombre-fix**
-- **Propósito:** Correcciones urgentes en producción
-- **Origen:** Desde `main`
-- **Destino:** Merge a `main` y `develop`
-- **Ejemplos:**
-  - `hotfix/security-patch`
-  - `hotfix/critical-bug`
-
-## 🔄 **Flujo de Trabajo**
-
-### **1. Desarrollo de Features**
+### **1. Desarrollo Diario**
 
 ```bash
 # 1. Asegurarse de estar en develop
 git checkout develop
 git pull origin develop
 
-# 2. Crear rama de feature
-git checkout -b feature/nueva-funcionalidad
-
-# 3. Desarrollar y hacer commits
+# 2. Desarrollar y hacer commits directamente en develop
 git add .
 git commit -m "feat: agregar nueva funcionalidad"
 
-# 4. Subir rama de feature
-git push -u origin feature/nueva-funcionalidad
-
-# 5. Crear Pull Request en GitHub
-# 6. Code review y merge a develop
-```
-
-### **2. Integración a Develop**
-
-```bash
-# 1. Cambiar a develop
-git checkout develop
-git pull origin develop
-
-# 2. Merge de feature
-git merge feature/nueva-funcionalidad
-
-# 3. Subir cambios
+# 3. Subir cambios a develop
 git push origin develop
-
-# 4. Eliminar rama de feature (opcional)
-git branch -d feature/nueva-funcionalidad
-git push origin --delete feature/nueva-funcionalidad
 ```
 
-### **3. Release a Producción**
+### **2. Release a Producción**
 
 ```bash
-# 1. Cuando develop esté estable
+# 1. Cuando develop esté estable y probado
 git checkout main
 git pull origin main
 
@@ -94,6 +51,15 @@ git push origin v3.1.1
 git push origin main
 ```
 
+### **3. Sincronización de Ramas**
+
+```bash
+# Después de un release, actualizar develop con main
+git checkout develop
+git pull origin main
+git push origin develop
+```
+
 ## 📝 **Convenciones de Commits**
 
 ### **Formato:**
@@ -101,8 +67,6 @@ git push origin main
 tipo(alcance): descripción
 
 [body opcional]
-
-[footer opcional]
 ```
 
 ### **Tipos:**
@@ -125,15 +89,15 @@ git commit -m "refactor(database): optimizar consultas SQL"
 ## 🛡️ **Protección de Ramas**
 
 ### **main:**
-- ✅ Requiere Pull Request
+- ✅ Requiere Pull Request desde develop
 - ✅ Requiere aprobación de review
 - ✅ Requiere que los tests pasen
 - ✅ No permite commits directos
 
 ### **develop:**
-- ✅ Requiere Pull Request para features
 - ✅ Permite commits directos para desarrollo
 - ✅ Requiere que los tests pasen
+- ✅ Debe estar siempre actualizada
 
 ## 🔧 **Comandos Útiles**
 
@@ -145,94 +109,117 @@ git branch -a
 # Ver ramas locales
 git branch
 
-# Ver ramas remotas
-git branch -r
-
 # Cambiar de rama
 git checkout nombre-rama
 
-# Crear y cambiar a nueva rama
-git checkout -b nueva-rama
-
-# Eliminar rama local
-git branch -d nombre-rama
-
-# Eliminar rama remota
-git push origin --delete nombre-rama
-```
-
-### **Estado y Logs:**
-```bash
 # Ver estado actual
 git status
+```
 
+### **Sincronización:**
+```bash
+# Actualizar develop
+git checkout develop
+git pull origin develop
+
+# Actualizar main
+git checkout main
+git pull origin main
+
+# Subir cambios
+git push origin develop
+git push origin main
+```
+
+### **Logs y Diferencias:**
+```bash
 # Ver historial de commits
 git log --oneline
 
 # Ver historial gráfico
 git log --oneline --graph --all
 
-# Ver diferencias
-git diff
-
 # Ver diferencias entre ramas
 git diff main..develop
-```
-
-### **Sincronización:**
-```bash
-# Actualizar rama local
-git pull origin nombre-rama
-
-# Subir cambios
-git push origin nombre-rama
-
-# Forzar push (usar con cuidado)
-git push --force-with-lease origin nombre-rama
 ```
 
 ## 🚨 **Buenas Prácticas**
 
 ### **✅ Hacer:**
-- Crear ramas de feature para cada funcionalidad
+- Desarrollar siempre en `develop`
 - Hacer commits pequeños y descriptivos
-- Actualizar develop regularmente
-- Hacer code review antes de merge
+- Probar antes de hacer merge a main
 - Mantener main siempre estable
+- Crear tags para releases
 
 ### **❌ Evitar:**
 - Commits directos a main
 - Commits grandes sin descripción
-- Dejar ramas de feature sin merge
+- Merge a main sin testing
 - Ignorar los tests
-- Hacer merge sin revisar
+- Dejar develop sin sincronizar
 
-## 📊 **Workflow Visual**
+## 📊 **Workflow Visual Simplificado**
 
 ```
 main     ●────────●────────●────────●
          │        │        │        │
 develop  ●────────●────────●────────●
-         │    │   │    │   │    │   │
-feature1 ●────●   │    │   │    │   │
-         │    │   │    │   │    │   │
-feature2 ●────●───●    │   │    │   │
-         │    │   │    │   │    │   │
-feature3 ●────●───●────●   │    │   │
-         │    │   │    │   │    │   │
-hotfix   ●────●───●────●───●    │   │
+         │        │        │        │
+         │        │        │        │
+         │        │        │        │
+         │        │        │        │
 ```
 
-## 🎯 **Próximos Pasos**
+## 🎯 **Proceso de Release**
 
-1. **Configurar protección de ramas** en GitHub
-2. **Crear templates** para Pull Requests
-3. **Configurar GitHub Actions** para CI/CD
-4. **Establecer code review** guidelines
-5. **Documentar** procesos específicos del equipo
+### **1. Preparación:**
+```bash
+# Asegurarse de que develop esté estable
+git checkout develop
+git pull origin develop
+# Ejecutar tests y verificar funcionalidad
+```
+
+### **2. Release:**
+```bash
+# Merge a main
+git checkout main
+git pull origin main
+git merge develop
+
+# Crear tag
+git tag -a v3.1.1 -m "Release v3.1.1"
+git push origin v3.1.1
+git push origin main
+```
+
+### **3. Post-Release:**
+```bash
+# Actualizar develop con main
+git checkout develop
+git pull origin main
+git push origin develop
+```
+
+## 🔄 **Ciclo de Desarrollo**
+
+1. **Desarrollo:** Trabajar en `develop`
+2. **Testing:** Probar en `develop`
+3. **Release:** Merge `develop` → `main`
+4. **Tag:** Crear tag de versión
+5. **Sync:** Actualizar `develop` con `main`
+
+## 🎯 **Ventajas de este Flujo**
+
+- ✅ **Simplicidad:** Solo 2 ramas principales
+- ✅ **Velocidad:** Menos overhead de gestión
+- ✅ **Claridad:** Flujo directo y fácil de entender
+- ✅ **Eficiencia:** Ideal para equipos pequeños
+- ✅ **Mantenimiento:** Fácil de mantener
 
 ---
 
 **Última actualización:** Enero 2025  
-**Versión:** 1.0  
+**Versión:** 2.0 - Simplificado  
 **Mantenido por:** Equipo de Desarrollo EL CLUB
