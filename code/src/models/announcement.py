@@ -9,9 +9,8 @@ from datetime import datetime
 import uuid
 
 from .base import BaseModel
-from ..database.database import Base
 
-class PackageAnnouncement(BaseModel, Base):
+class PackageAnnouncement(BaseModel):
     """Modelo para anuncios de paquetes"""
     __tablename__ = "package_announcements"
     
