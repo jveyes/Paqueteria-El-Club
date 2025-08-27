@@ -53,6 +53,15 @@
         <!-- Contenido del formulario -->
         <div class="p-4 sm:p-8">
             <form id="announcementForm" class="space-y-6">
+                <!-- Mensaje de error -->
+                <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    <div class="flex">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span id="errorText">Error al crear el anuncio</span>
+                    </div>
+                </div>
                 <!-- Nombre del Cliente -->
                 <div class="input-with-icon">
                     <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,11 +125,12 @@
                 <!-- Botón de Envío -->
                 <div class="text-center pt-4">
                     <button type="submit" 
+                            id="submitButton"
                             class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-papyrus-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-papyrus-blue transition-colors">
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
-                        Anunciar
+                        <span id="submitButtonText">Anunciar</span>
                     </button>
                 </div>
             </form>
@@ -128,4 +138,211 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Éxito -->
+<div id="successModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
+        <div class="text-center">
+            <!-- Icono de éxito más grande -->
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            
+            <!-- Título más grande -->
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                ¡Paquete Anunciado Exitosamente!
+            </h3>
+            
+            <!-- Mensaje más grande -->
+            <div class="px-4 py-2">
+                <p class="text-base text-gray-600 mb-6 leading-relaxed">
+                    Tu paquete ha sido registrado en nuestro sistema. 
+                    Nos pondremos en contacto contigo para confirmarte al recibirlo.
+                </p>
+                
+                <!-- Número de guía destacado más grande -->
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                    <p class="text-sm text-blue-600 font-semibold mb-2">Número de Guía:</p>
+                    <p id="modalGuideNumber" class="text-2xl font-bold text-blue-800 tracking-wider"></p>
+                </div>
+                
+                <!-- Código de seguimiento destacado más grande -->
+                <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6">
+                    <p class="text-sm text-green-600 font-semibold mb-2">Código de Consulta:</p>
+                    <p id="modalTrackingCode" class="text-2xl font-bold text-green-800 tracking-wider"></p>
+                </div>
+                
+                <!-- Información adicional más grande -->
+                <div class="text-sm text-gray-600 space-y-2 mb-6">
+                    <p class="leading-relaxed">
+                        • Puedes consultar el estado de tu paquete con ambos números y así saber cuál es su estado.
+                    </p>
+                    <p class="leading-relaxed">
+                        • Recibirás confirmación por WhatsApp o SMS cuando el paquete cambie de estado.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Botón más grande -->
+            <div class="flex justify-center mt-6">
+                <button id="closeModalBtn" 
+                        class="px-8 py-3 bg-papyrus-blue text-white text-lg font-semibold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-papyrus-blue transition-colors shadow-lg">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('announcementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Obtener elementos
+    const submitButton = document.getElementById('submitButton');
+    const submitButtonText = document.getElementById('submitButtonText');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const successModal = document.getElementById('successModal');
+    const modalGuideNumber = document.getElementById('modalGuideNumber');
+    const modalTrackingCode = document.getElementById('modalTrackingCode');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    
+    // Obtener valores del formulario
+    const customerName = document.getElementById('customer_name').value.trim();
+    const guideNumber = document.getElementById('guide_number').value.trim();
+    const phoneNumber = document.getElementById('phone_number').value.trim();
+    const termsConditions = document.getElementById('terms_conditions').checked;
+    
+    // Validaciones básicas
+    if (!customerName) {
+        showError('El nombre del cliente es requerido');
+        return;
+    }
+    
+    if (!guideNumber) {
+        showError('El número de guía es requerido');
+        return;
+    }
+    
+    if (!phoneNumber) {
+        showError('El teléfono del cliente es requerido');
+        return;
+    }
+    
+    if (!termsConditions) {
+        showError('Debe aceptar los términos y condiciones');
+        return;
+    }
+    
+    // Mostrar estado de carga
+    submitButton.disabled = true;
+    submitButtonText.textContent = 'Procesando...';
+    hideMessages();
+    
+    // Preparar datos para enviar
+    const payload = {
+        customer_name: customerName,
+        guide_number: guideNumber.toUpperCase(),
+        phone_number: phoneNumber
+    };
+    
+    // Enviar al backend
+    fetch('/api/announcements/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.detail || 'Error al crear el anuncio');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Paquete anunciado exitosamente:', data);
+        
+        // Mostrar modal de éxito
+        modalGuideNumber.textContent = data.guide_number;
+        modalTrackingCode.textContent = data.tracking_code;
+        showSuccessModal();
+        
+        // Limpiar formulario
+        document.getElementById('announcementForm').reset();
+        
+        // Restaurar botón
+        submitButton.disabled = false;
+        submitButtonText.textContent = 'Anunciar';
+    })
+    .catch(error => {
+        console.error('Error al crear anuncio:', error);
+        
+        // Mostrar mensaje de error
+        errorText.textContent = error.message || 'Error al crear el anuncio';
+        showError();
+        
+        // Restaurar botón
+        submitButton.disabled = false;
+        submitButtonText.textContent = 'Anunciar';
+    });
+});
+
+function showError(message) {
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    
+    errorText.textContent = message;
+    errorMessage.classList.remove('hidden');
+}
+
+function showSuccessModal() {
+    const successModal = document.getElementById('successModal');
+    successModal.classList.remove('hidden');
+    
+    // Enfocar el botón de cerrar para accesibilidad
+    document.getElementById('closeModalBtn').focus();
+}
+
+function hideError() {
+    const errorMessage = document.getElementById('errorMessage');
+    errorMessage.classList.add('hidden');
+}
+
+function hideSuccessModal() {
+    const successModal = document.getElementById('successModal');
+    successModal.classList.add('hidden');
+}
+
+function hideMessages() {
+    hideError();
+}
+
+// Event listener para cerrar el modal
+closeModalBtn.addEventListener('click', hideSuccessModal);
+
+// Cerrar modal al hacer clic fuera de él
+successModal.addEventListener('click', function(e) {
+    if (e.target === successModal) {
+        hideSuccessModal();
+    }
+});
+
+// Cerrar modal con la tecla Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !successModal.classList.contains('hidden')) {
+        hideSuccessModal();
+    }
+});
+
+// Limpiar mensajes cuando el usuario empiece a escribir
+document.getElementById('customer_name').addEventListener('input', hideMessages);
+document.getElementById('guide_number').addEventListener('input', hideMessages);
+document.getElementById('phone_number').addEventListener('input', hideMessages);
+</script>
 {% endblock %}

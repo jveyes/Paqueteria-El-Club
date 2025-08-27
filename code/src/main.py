@@ -24,6 +24,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, JSONResponse
 from contextlib import asynccontextmanager
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, desc
 import logging
 from datetime import datetime
 
@@ -32,8 +34,8 @@ from .config import settings
 from .utils.exceptions import PaqueteriaException, handle_paqueteria_exception
 
 # Importar routers
-from .routers import auth, packages, customers, rates, notifications, messages, files, admin
-from .database.database import engine
+from .routers import auth, packages, customers, rates, notifications, messages, files, admin, announcements
+from .database.database import engine, get_db
 from .models import base
 from .dependencies import get_current_active_user
 
@@ -146,6 +148,7 @@ app.add_exception_handler(PaqueteriaException, handle_paqueteria_exception)
 # Incluir routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Autenticación"])
 app.include_router(packages.router, prefix="/api/packages", tags=["Paquetes"])
+app.include_router(announcements.router, prefix="/api/announcements", tags=["Anuncios"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Clientes"])
 app.include_router(rates.router, prefix="/api/rates", tags=["Tarifas"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notificaciones"])
@@ -186,6 +189,12 @@ async def search_page(request: Request):
     """Página de consulta de paquetes - Pública"""
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("customers/search.html", context)
+
+@app.get("/track")
+async def track_package_page(request: Request):
+    """Página de consulta de paquetes por código de seguimiento - Pública"""
+    context = get_auth_context(request, is_authenticated=False)
+    return templates.TemplateResponse("customers/track-package.html", context)
 
 @app.get("/login")
 async def login_page(request: Request):
@@ -338,7 +347,7 @@ async def help_page(request: Request):
     return templates.TemplateResponse("customers/help.html", context)
 
 @app.get("/dashboard")
-async def dashboard_page(request: Request):
+async def dashboard_page(request: Request, db: Session = Depends(get_db)):
     """Dashboard administrativo - Solo para usuarios autenticados"""
     # Verificar autenticación
     context = await get_auth_context_from_request(request)
@@ -347,24 +356,69 @@ async def dashboard_page(request: Request):
         # Redirigir a login si no está autenticado
         return RedirectResponse(url="/auth/login?redirect=/dashboard", status_code=302)
     
-    # Datos de ejemplo para el dashboard
-    stats = {
-        "total_packages": 150,
-        "pending_packages": 25,
-        "delivered_packages": 120,
-        "total_customers": 45
-    }
-    
-    recent_packages = [
-        {"id": 1, "tracking_number": "ABC123", "customer_name": "Juan Pérez", "status": "pending"},
-        {"id": 2, "tracking_number": "XYZ789", "customer_name": "María García", "status": "delivered"}
-    ]
-    
-    # Agregar información del usuario al contexto
-    context.update({
-        "stats": stats,
-        "recent_packages": recent_packages
-    })
+    try:
+        # Obtener estadísticas reales de la base de datos
+        from .models.package import Package, PackageStatus
+        from .models.announcement import PackageAnnouncement
+        from .models.customer import Customer
+        
+        # Estadísticas de paquetes
+        total_packages = db.query(Package).count()
+        pending_packages = db.query(Package).filter(Package.status == PackageStatus.ANUNCIADO).count()
+        delivered_packages = db.query(Package).filter(Package.status == PackageStatus.ENTREGADO).count()
+        total_customers = db.query(Customer).count()
+        
+        # Estadísticas de anuncios
+        total_announcements = db.query(PackageAnnouncement).count()
+        pending_announcements = db.query(PackageAnnouncement).filter(
+            and_(PackageAnnouncement.is_active == True, PackageAnnouncement.is_processed == False)
+        ).count()
+        processed_announcements = db.query(PackageAnnouncement).filter(
+            PackageAnnouncement.is_processed == True
+        ).count()
+        
+        # Anuncios recientes (últimos 5)
+        recent_announcements = db.query(PackageAnnouncement).filter(
+            PackageAnnouncement.is_active == True
+        ).order_by(desc(PackageAnnouncement.announced_at)).limit(5).all()
+        
+        # Paquetes recientes (últimos 5)
+        recent_packages = db.query(Package).order_by(desc(Package.created_at)).limit(5).all()
+        
+        stats = {
+            "total_packages": total_packages,
+            "pending_packages": pending_packages,
+            "delivered_packages": delivered_packages,
+            "total_customers": total_customers,
+            "total_announcements": total_announcements,
+            "pending_announcements": pending_announcements,
+            "processed_announcements": processed_announcements
+        }
+        
+        # Agregar información del usuario al contexto
+        context.update({
+            "stats": stats,
+            "recent_packages": recent_packages,
+            "recent_announcements": recent_announcements
+        })
+        
+    except Exception as e:
+        # En caso de error, usar datos de ejemplo
+        logger.error(f"Error al obtener datos del dashboard: {e}")
+        stats = {
+            "total_packages": 0,
+            "pending_packages": 0,
+            "delivered_packages": 0,
+            "total_customers": 0,
+            "total_announcements": 0,
+            "pending_announcements": 0,
+            "processed_announcements": 0
+        }
+        context.update({
+            "stats": stats,
+            "recent_packages": [],
+            "recent_announcements": []
+        })
     
     return templates.TemplateResponse("dashboard.html", context)
 
