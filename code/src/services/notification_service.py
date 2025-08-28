@@ -3,17 +3,22 @@
 # ========================================
 
 import smtplib
+import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
+import logging
 
 from ..models.notification import Notification, NotificationType, NotificationStatus
 from ..models.package import Package
 from ..models.user import User, PasswordResetToken
 from ..utils.exceptions import NotificationException
 from ..config import settings
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 class NotificationService:
     """Servicio para manejo de notificaciones"""
@@ -184,28 +189,30 @@ class NotificationService:
                         color: #333; 
                         margin: 0; 
                         padding: 20px; 
-                        background-color: #ffffff;
+                        background-color: #f4f4f4;
                     }}
                     .container {{ 
                         max-width: 600px; 
                         margin: 0 auto; 
                         background-color: #ffffff; 
-                        padding: 20px;
+                        padding: 30px;
+                        border-radius: 10px;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
                     }}
                     .header {{ 
                         text-align: center; 
                         padding: 20px 0; 
-                        border-bottom: 1px solid #ccc;
-                        margin-bottom: 20px;
+                        border-bottom: 2px solid #3B82F6;
+                        margin-bottom: 30px;
                     }}
                     .service-name {{
-                        font-size: 20px;
+                        font-size: 24px;
                         font-weight: bold;
                         margin: 0 0 5px 0;
-                        color: #333;
+                        color: #3B82F6;
                     }}
                     .service-subtitle {{
-                        font-size: 14px;
+                        font-size: 16px;
                         margin: 0;
                         color: #666;
                     }}
@@ -213,63 +220,75 @@ class NotificationService:
                         padding: 20px 0;
                     }}
                     .greeting {{
-                        font-size: 16px;
+                        font-size: 18px;
                         color: #333;
-                        margin-bottom: 15px;
+                        margin-bottom: 20px;
                         font-weight: bold;
                     }}
                     .message {{
-                        font-size: 14px;
+                        font-size: 16px;
                         color: #333;
-                        margin-bottom: 15px;
-                        line-height: 1.5;
+                        margin-bottom: 20px;
+                        line-height: 1.6;
                     }}
                     .button-container {{
                         text-align: center;
-                        margin: 25px 0;
+                        margin: 30px 0;
                     }}
                     .button {{ 
                         display: inline-block; 
-                        background-color: #007bff; 
+                        background-color: #3B82F6; 
                         color: white; 
-                        padding: 12px 25px; 
+                        padding: 15px 30px; 
                         text-decoration: none; 
-                        border-radius: 4px; 
+                        border-radius: 8px; 
                         font-weight: bold;
-                        font-size: 14px;
+                        font-size: 16px;
+                        transition: background-color 0.3s;
+                    }}
+                    .button:hover {{
+                        background-color: #2563EB;
                     }}
                     .warning {{
-                        background-color: #f9f9f9;
-                        border: 1px solid #ddd;
-                        padding: 12px;
-                        margin: 15px 0;
-                        border-radius: 4px;
+                        background-color: #FEF3C7;
+                        border: 1px solid #F59E0B;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 8px;
                         text-align: center;
-                        color: #333;
-                        font-size: 13px;
+                        color: #92400E;
+                        font-size: 14px;
                     }}
                     .link-container {{
-                        background-color: #f9f9f9;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        padding: 12px;
-                        margin: 15px 0;
+                        background-color: #F3F4F6;
+                        border: 1px solid #D1D5DB;
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin: 20px 0;
                         text-align: center;
                     }}
                     .link-text {{
                         word-break: break-all; 
-                        color: #333; 
+                        color: #374151; 
                         font-family: monospace;
                         font-size: 12px;
-                        margin: 5px 0;
+                        margin: 10px 0;
+                        padding: 10px;
+                        background-color: white;
+                        border-radius: 4px;
                     }}
                     .footer {{ 
                         text-align: center; 
                         padding: 20px 0; 
-                        border-top: 1px solid #ccc;
-                        margin-top: 20px;
-                        color: #666;
-                        font-size: 12px;
+                        border-top: 1px solid #E5E7EB;
+                        margin-top: 30px;
+                        color: #6B7280;
+                        font-size: 14px;
+                    }}
+                    .logo {{
+                        width: 120px;
+                        height: auto;
+                        margin-bottom: 10px;
                     }}
                 </style>
             </head>
@@ -284,7 +303,7 @@ class NotificationService:
                         <div class="greeting">¡Hola {user.first_name}!</div>
                         
                         <div class="message">
-                            Has solicitado restablecer tu contraseña en PAQUETES EL CLUB, nuestro sistema de gestión de paquetería.
+                            Has solicitado restablecer tu contraseña en <strong>PAQUETES EL CLUB</strong>, nuestro sistema de gestión de paquetería.
                         </div>
                         
                         <div class="message">
@@ -292,36 +311,59 @@ class NotificationService:
                         </div>
                         
                         <div class="button-container">
-                            <a href="{reset_url}" class="button">
-                                Restablecer Contraseña
+                            <a href="{reset_url}" class="button" style="display: inline-block; background-color: #3B82F6; color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                🔐 Restablecer Contraseña
                             </a>
                         </div>
                         
                         <div class="warning">
-                            <strong>IMPORTANTE:</strong> Este enlace expirará en 1 hora por seguridad.
+                            <strong>⚠️ IMPORTANTE:</strong> Este enlace expirará en 1 hora por seguridad.
                         </div>
                         
                         <div class="link-container">
-                            <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                            <p><strong>Si el botón no funciona, copia y pega este enlace en tu navegador:</strong></p>
                             <p class="link-text">{reset_url}</p>
+                        </div>
+                        
+                        <div class="message">
+                            <strong>¿No solicitaste este cambio?</strong><br>
+                            Si no fuiste tú quien solicitó este restablecimiento, puedes ignorar este email de forma segura. Tu contraseña actual permanecerá sin cambios.
                         </div>
                     </div>
                     
                     <div class="footer">
-                        <p>Si no solicitaste este cambio, puedes ignorar este email de forma segura.</p>
-                        <p>Este es un email automático, por favor no respondas a este mensaje.</p>
-                        <p>Desarrollado por JEMAVI para PAPYRUS</p>
+                        <p><strong>PAQUETES EL CLUB</strong></p>
+                        <p>Cra. 91 #54-120, Local 12</p>
+                        <p>Tel: 3334004007 | Email: guia@papyrus.com.co</p>
+                        <p style="margin-top: 15px; font-size: 12px; color: #9CA3AF;">
+                            Este es un email automático, por favor no respondas a este mensaje.<br>
+                            Desarrollado por JEMAVI para PAPYRUS
+                        </p>
                     </div>
                 </div>
             </body>
             </html>
             """
             
-            # Enviar email
-            return await self._send_email_real(user.email, subject, html_content)
+            # Intentar enviar email real
+            email_sent = await self._send_email_real(user.email, subject, html_content)
+            
+            if email_sent:
+                logger.info(f"Email de reset enviado exitosamente a {user.email}")
+                return True
+            else:
+                # Si falla el envío real, simular en desarrollo
+                if settings.environment == "development":
+                    logger.warning(f"Fallback a modo desarrollo para {user.email}")
+                    print(f"📧 Email de reset simulado para {user.email}")
+                    print(f"   Enlace: {reset_url}")
+                    return True
+                else:
+                    logger.error(f"Error enviando email de reset a {user.email}")
+                    return False
             
         except Exception as e:
-            print(f"Error enviando email de reset: {e}")
+            logger.error(f"Error en send_password_reset_email: {e}")
             return False
     
     async def _send_email_real(self, to_email: str, subject: str, html_content: str) -> bool:
@@ -334,32 +376,45 @@ class NotificationService:
             msg['To'] = to_email
             
             # Agregar contenido HTML
-            html_part = MIMEText(html_content, 'html')
+            html_part = MIMEText(html_content, 'html', 'utf-8')
             msg.attach(html_part)
             
+            # Configurar contexto SSL
+            context = ssl.create_default_context()
+            
             # Conectar al servidor SMTP
-            server = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
-            server.starttls()  # Habilitar TLS
+            logger.info(f"Conectando a SMTP: {settings.smtp_host}:{settings.smtp_port}")
             
-            # Autenticación
-            server.login(settings.smtp_user, settings.smtp_password)
-            
-            # Enviar email
-            server.send_message(msg)
-            server.quit()
-            
-            print(f"Email enviado exitosamente a {to_email}")
-            return True
-            
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+                server.starttls(context=context)  # Habilitar TLS
+                
+                # Autenticación
+                logger.info(f"Autenticando con usuario: {settings.smtp_user}")
+                server.login(settings.smtp_user, settings.smtp_password)
+                
+                # Enviar email
+                server.send_message(msg)
+                logger.info(f"Email enviado exitosamente a {to_email}")
+                return True
+                
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"Error de autenticación SMTP: {e}")
+            return False
+        except smtplib.SMTPRecipientsRefused as e:
+            logger.error(f"Destinatario rechazado: {e}")
+            return False
+        except smtplib.SMTPServerDisconnected as e:
+            logger.error(f"Servidor SMTP desconectado: {e}")
+            return False
         except Exception as e:
-            print(f"Error enviando email a {to_email}: {e}")
+            logger.error(f"Error enviando email a {to_email}: {e}")
             return False
     
     async def _send_email(self, to_email: str, subject: str, message: str) -> bool:
         """Enviar email usando SMTP (simulado)"""
         # Aquí se implementaría el envío real de email
         # Por ahora solo simulamos
-        print(f"Email simulado a {to_email}: {subject} - {message}")
+        logger.info(f"Email simulado a {to_email}: {subject} - {message}")
         return True
     
     async def _send_sms(self, phone: str, message: str) -> bool:
@@ -368,7 +423,7 @@ class NotificationService:
         # Por ahora solo simulamos el envío
         if not settings.liwa_api_key:
             # En desarrollo, solo log
-            print(f"SMS simulado a {phone}: {message}")
+            logger.info(f"SMS simulado a {phone}: {message}")
             return True
         
         # Implementación real con LIWA.co

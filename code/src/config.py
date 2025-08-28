@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     smtp_host: str = "taylor.mxrouting.net"
     smtp_port: int = 587
     smtp_user: str = "guia@papyrus.com.co"
-    smtp_password: str = "90@5fmCU%gabP4%*"
+    smtp_password: str = ""  # Se lee desde variable de entorno
     smtp_from_name: str = "PAQUETES EL CLUB"
     smtp_from_email: str = "guia@papyrus.com.co"
     

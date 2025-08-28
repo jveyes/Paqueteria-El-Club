@@ -19,7 +19,7 @@ from ..dependencies import get_current_active_user
 router = APIRouter()
 
 def generate_tracking_code(db: Session) -> str:
-    """Generar código de seguimiento único de 4 caracteres"""
+    """Generar código de guía único de 4 caracteres"""
     import random
     import string
     
@@ -52,7 +52,7 @@ async def create_announcement(
             detail="Ya existe un anuncio con ese número de guía"
         )
     
-    # Generar código de seguimiento único
+    # Generar código de guía único
     tracking_code = generate_tracking_code(db)
     
     # Crear anuncio
@@ -144,7 +144,7 @@ async def get_announcement_by_tracking(
     tracking_code: str,
     db: Session = Depends(get_db)
 ):
-    """Obtener anuncio por código de seguimiento (público)"""
+    """Obtener anuncio por código de guía (público)"""
     announcement = db.query(PackageAnnouncement).filter(
         PackageAnnouncement.tracking_code == tracking_code.upper()
     ).first()
@@ -159,10 +159,10 @@ async def get_announcement_by_tracking(
 
 @router.get("/search/package", response_model=dict)
 async def search_package_history(
-    query: str = Query(..., description="Número de guía o código de seguimiento"),
+    query: str = Query(..., description="Número de guía o código de guía"),
     db: Session = Depends(get_db)
 ):
-    """Buscar historial completo de un paquete por número de guía o código de seguimiento"""
+    """Buscar historial completo de un paquete por número de guía o código de guía"""
     
     # Normalizar la consulta
     query = query.strip().upper()
@@ -278,7 +278,7 @@ async def search_package_history(
                 "timestamp": package.received_at,
                 "details": {
                     "received_by": "Sistema",
-                    "location": "Almacén principal"
+                    "location": "Papyrus"
                 }
             })
         

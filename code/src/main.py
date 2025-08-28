@@ -37,7 +37,7 @@ from .utils.exceptions import PaqueteriaException, handle_paqueteria_exception
 from .routers import auth, packages, customers, rates, notifications, messages, files, admin, announcements
 from .database.database import engine, get_db
 from .models import base
-from .dependencies import get_current_active_user
+from .dependencies import get_current_active_user, verify_token
 
 # Configurar logging optimizado
 logging.basicConfig(
@@ -132,7 +132,6 @@ async def get_auth_context_from_request(request: Request):
         token = request.cookies.get("access_token")
         if token:
             # Verificar el token usando la función de dependencias
-            from .dependencies import verify_token
             username = verify_token(token)
             if username:
                 return get_auth_context(request, is_authenticated=True, user_name=username)
@@ -155,6 +154,31 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["Not
 app.include_router(messages.router, prefix="/api/messages", tags=["Mensajes"])
 app.include_router(files.router, prefix="/api/files", tags=["Archivos"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Administración"])
+
+# ========================================
+# ENDPOINT ADICIONAL PARA VERIFICACIÓN DE AUTENTICACIÓN
+# ========================================
+
+@app.get("/api/auth/check")
+async def check_auth(request: Request):
+    """Verificar estado de autenticación desde frontend"""
+    try:
+        # Intentar obtener el token desde las cookies
+        token = request.cookies.get("access_token")
+        if token:
+            username = verify_token(token)
+            if username:
+                return {
+                    "is_authenticated": True,
+                    "user_name": username
+                }
+    except Exception:
+        pass
+    
+    return {
+        "is_authenticated": False,
+        "user_name": None
+    }
 
 # ========================================
 # RUTAS PÚBLICAS - ACCESO SIN AUTENTICACIÓN
@@ -192,7 +216,7 @@ async def search_page(request: Request):
 
 @app.get("/track")
 async def track_package_page(request: Request):
-    """Página de consulta de paquetes por código de seguimiento - Pública"""
+    """Página de consulta de paquetes por código de guía - Pública"""
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("customers/track-package.html", context)
 
@@ -213,14 +237,8 @@ async def auth_login_page(request: Request):
 
 @app.get("/auth/register")
 async def auth_register_page(request: Request):
-    """Página de registro - Solo para usuarios autenticados"""
-    # Verificar autenticación desde cookies
-    context = await get_auth_context_from_request(request)
-    
-    if not context["is_authenticated"]:
-        # Redirigir a login si no está autenticado
-        return RedirectResponse(url="/auth/login?redirect=/auth/register", status_code=302)
-    
+    """Página de registro - Pública"""
+    context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("auth/register.html", context)
 
 @app.get("/auth/forgot-password")
@@ -235,116 +253,34 @@ async def auth_reset_password_page(request: Request):
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("auth/reset-password.html", context)
 
-@app.post("/api/auth/forgot-password")
-async def forgot_password_api(request: Request):
-    """Endpoint temporal para forgot-password"""
-    try:
-        data = await request.json()
-        email = data.get("email")
-        
-        if not email:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "Email es requerido"}
-            )
-        
-        # Simular envío exitoso
-        return JSONResponse(
-            status_code=200,
-            content={
-                "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
-                "email": email
-            }
-        )
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Error interno: {str(e)}"}
-        )
-
-@app.post("/api/auth/login-test")
-async def login_test_api(request: Request):
-    """Endpoint temporal para login"""
-    try:
-        data = await request.json()
-        username = data.get("username")
-        password = data.get("password")
-        
-        if not username or not password:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "Username y password son requeridos"}
-            )
-        
-        # Simular login exitoso
-        return JSONResponse(
-            status_code=200,
-            content={
-                "access_token": "test_token",
-                "token_type": "bearer",
-                "user": {
-                    "id": "test_id",
-                    "username": username,
-                    "email": username,
-                    "first_name": "Test",
-                    "last_name": "User",
-                    "role": "ADMIN"
-                }
-            }
-        )
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Error interno: {str(e)}"}
-        )
-
-@app.post("/api/auth/login-simple")
-async def login_simple_api(request: Request):
-    """Endpoint simple para login con form data"""
-    try:
-        form_data = await request.form()
-        username = form_data.get("username")
-        password = form_data.get("password")
-        
-        if not username or not password:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "Username y password son requeridos"}
-            )
-        
-        # Verificar credenciales (simulado)
-        if username == "jveyes@gmail.com" and password == "il1111":
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "access_token": "test_token_123",
-                    "token_type": "bearer",
-                    "user": {
-                        "id": "test_id_123",
-                        "username": username,
-                        "email": username,
-                        "first_name": "JESUS",
-                        "last_name": "VILLALOBOS",
-                        "role": "ADMIN"
-                    }
-                }
-            )
-        else:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Credenciales incorrectas"}
-            )
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Error interno: {str(e)}"}
-        )
+@app.get("/logout")
+async def logout_page(request: Request):
+    """Página de logout - Redirige a la página de login"""
+    # Limpiar cookies de autenticación
+    response = RedirectResponse(url="/auth/login", status_code=302)
+    response.delete_cookie("access_token")
+    response.delete_cookie("user_id")
+    response.delete_cookie("user_name")
+    response.delete_cookie("user_role")
+    return response
 
 @app.get("/help")
 async def help_page(request: Request):
     """Página de ayuda - Pública"""
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("customers/help.html", context)
+
+@app.get("/cookies")
+async def cookies_page(request: Request):
+    """Página de política de cookies - Pública"""
+    context = get_auth_context(request, is_authenticated=False)
+    return templates.TemplateResponse("customers/cookies.html", context)
+
+@app.get("/policies")
+async def policies_page(request: Request):
+    """Página de políticas - Pública"""
+    context = get_auth_context(request, is_authenticated=False)
+    return templates.TemplateResponse("customers/policies.html", context)
 
 @app.get("/dashboard")
 async def dashboard_page(request: Request, db: Session = Depends(get_db)):
@@ -398,103 +334,93 @@ async def dashboard_page(request: Request, db: Session = Depends(get_db)):
         # Agregar información del usuario al contexto
         context.update({
             "stats": stats,
-            "recent_packages": recent_packages,
-            "recent_announcements": recent_announcements
+            "recent_announcements": recent_announcements,
+            "recent_packages": recent_packages
         })
         
+        return templates.TemplateResponse("dashboard.html", context)
+        
     except Exception as e:
-        # En caso de error, usar datos de ejemplo
-        logger.error(f"Error al obtener datos del dashboard: {e}")
-        stats = {
-            "total_packages": 0,
-            "pending_packages": 0,
-            "delivered_packages": 0,
-            "total_customers": 0,
-            "total_announcements": 0,
-            "pending_announcements": 0,
-            "processed_announcements": 0
-        }
+        logger.error(f"Error en dashboard: {e}")
+        # En caso de error, mostrar dashboard básico
         context.update({
-            "stats": stats,
-            "recent_packages": [],
-            "recent_announcements": []
+            "stats": {
+                "total_packages": 0,
+                "pending_packages": 0,
+                "delivered_packages": 0,
+                "total_customers": 0,
+                "total_announcements": 0,
+                "pending_announcements": 0,
+                "processed_announcements": 0
+            },
+            "recent_announcements": [],
+            "recent_packages": []
         })
-    
-    return templates.TemplateResponse("dashboard.html", context)
+        return templates.TemplateResponse("dashboard.html", context)
 
-@app.get("/profile")
-async def profile_page(request: Request):
-    """Página de perfil de usuario - Solo para usuarios autenticados"""
-    # Verificar autenticación
+# ========================================
+# RUTAS PROTEGIDAS - REQUIEREN AUTENTICACIÓN
+# ========================================
+
+@app.get("/admin")
+async def admin_page(request: Request):
+    """Página de administración - Solo para administradores"""
     context = await get_auth_context_from_request(request)
     
     if not context["is_authenticated"]:
-        # Redirigir a login si no está autenticado
-        return RedirectResponse(url="/auth/login?redirect=/profile", status_code=302)
+        return RedirectResponse(url="/auth/login?redirect=/admin", status_code=302)
     
-    return templates.TemplateResponse("auth/profile.html", context)
+    return templates.TemplateResponse("admin/admin.html", context)
 
-@app.get("/admin/users")
-async def admin_users_page(request: Request):
-    """Página de gestión de usuarios - Solo para administradores"""
-    # Verificar autenticación
+@app.get("/packages")
+async def packages_page(request: Request):
+    """Página de gestión de paquetes - Solo para usuarios autenticados"""
     context = await get_auth_context_from_request(request)
     
     if not context["is_authenticated"]:
-        # Redirigir a login si no está autenticado
-        return RedirectResponse(url="/auth/login?redirect=/admin/users", status_code=302)
+        return RedirectResponse(url="/auth/login?redirect=/packages", status_code=302)
     
-    # Verificar que sea admin
-    if context.get("user_role") != "ADMIN":
-        # Redirigir a dashboard si no es admin
-        return RedirectResponse(url="/dashboard", status_code=302)
-    
-    return templates.TemplateResponse("admin/users.html", context)
+    return templates.TemplateResponse("packages/packages.html", context)
 
-@app.get("/auth/logout")
-async def logout_page(request: Request):
-    """Página de logout - Limpia cookies y redirige"""
-    response = RedirectResponse(url="/auth/login", status_code=302)
+@app.get("/customers-management")
+async def customers_management_page(request: Request):
+    """Página de gestión de clientes - Solo para usuarios autenticados"""
+    context = await get_auth_context_from_request(request)
     
-    # Limpiar cookies de autenticación
-    response.delete_cookie("access_token")
-    response.delete_cookie("user_id")
-    response.delete_cookie("user_name")
-    response.delete_cookie("user_role")
+    if not context["is_authenticated"]:
+        return RedirectResponse(url="/auth/login?redirect=/customers-management", status_code=302)
     
-    return response
+    return templates.TemplateResponse("customers/customers-management.html", context)
+
+# ========================================
+# HEALTH CHECKS Y UTILIDADES
+# ========================================
 
 @app.get("/health")
 async def health_check():
-    """Endpoint de verificación de salud"""
+    """Health check para monitoreo"""
     return {
         "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": settings.app_version
+    }
+
+@app.get("/api/health")
+async def api_health_check():
+    """Health check para API"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
         "version": settings.app_version,
         "environment": settings.environment
     }
 
-@app.get("/api/auth/check")
-async def check_auth(request: Request):
-    """Verificar estado de autenticación"""
-    context = await get_auth_context_from_request(request)
-    return {
-        "is_authenticated": context["is_authenticated"],
-        "user_name": context["user_name"]
-    }
-
-@app.get("/api/docs")
-async def api_docs():
-    """Redirigir a la documentación de la API"""
-    return {"docs_url": "/docs"}
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        app,
+        "main:app",
         host="0.0.0.0",
         port=8000,
-        workers=1,
-        limit_concurrency=50,
-        limit_max_requests=1000
+        reload=True,
+        log_level="info"
     )

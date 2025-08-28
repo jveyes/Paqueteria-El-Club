@@ -56,10 +56,17 @@ async def create_package(
 
 ### **Convenciones de Modelos**
 - **Herencia de BaseModel**: Todos los modelos heredan de `BaseModel`
+- **Herencia de Base**: Todos los modelos DEBEN heredar también de `Base` para SQLAlchemy
 - **Relaciones Explícitas**: Definir todas las relaciones con `relationship()`
 - **Índices**: Crear índices para campos de búsqueda frecuente
 - **Constraints**: Usar constraints de base de datos apropiados
 - **Timestamps**: Incluir `created_at` y `updated_at` automáticamente
+
+### **Configuración de Modelos**
+- **Estructura correcta**: `class ModelName(BaseModel, Base):`
+- **Timestamps automáticos**: Usar `default=datetime.utcnow` para `created_at`
+- **Timestamps de actualización**: Usar `onupdate=datetime.utcnow` para `updated_at`
+- **Verificar herencia**: Confirmar que todos los modelos heredan de ambas clases base
 
 ### **Ejemplo de Modelo**
 ```python
@@ -80,6 +87,25 @@ class Package(BaseModel, Base):
 - **Nombres Descriptivos**: Usar nombres que describan el cambio
 - **Rollback Seguro**: Siempre implementar `downgrade()`
 - **Datos de Prueba**: Incluir datos de prueba en migraciones cuando sea apropiado
+
+### **Verificación de Migraciones**
+- **SIEMPRE verificar estado de migraciones antes de diagnosticar problemas de base de datos**
+- **Comprobar que las migraciones estén aplicadas**: `alembic current` debe mostrar la última migración
+- **Verificar existencia de tablas**: Confirmar que las tablas existen antes de diagnosticar errores de modelo
+- **Aplicar migraciones pendientes**: Ejecutar `alembic upgrade head` si hay migraciones sin aplicar
+- **Verificar estructura de tablas**: Usar `\dt` y `\d table_name` para confirmar estructura correcta
+
+### **Diagnóstico de Base de Datos**
+- **Orden de verificación**:
+  1. Estado de migraciones (`alembic current`)
+  2. Existencia de tablas (`\dt`)
+  3. Estructura de tablas (`\d table_name`)
+  4. Logs de aplicación para errores específicos
+- **Problemas comunes a verificar**:
+  - Migraciones no aplicadas
+  - Modelos sin herencia de `Base`
+  - Campos sin valores por defecto
+  - Constraints violados
 
 ## 🔧 **SERVICIOS DE NEGOCIO**
 
@@ -354,6 +380,54 @@ def test_create_package_success(db_session):
 
 ---
 
+## 🚫 **REGLAS DE INTERVENCIÓN Y MODIFICACIÓN**
+
+### **Soluciones Temporales**
+- **SOLO crear soluciones temporales cuando el usuario lo solicite explícitamente**
+- **NO implementar parches o workarounds sin autorización**
+- **Documentar todas las modificaciones temporales con propósito y fecha de eliminación**
+- **Crear plan de limpieza para remover código temporal**
+
+### **Diagnóstico y Análisis**
+- **Consultar logs antes de modificar código**
+- **Proponer diagnóstico antes de implementar cambios**
+- **Usar scripts de testing existentes para identificar problemas**
+- **Analizar el contexto completo antes de sugerir modificaciones**
+
+### **Confirmación y Comunicación**
+- **Solicitar confirmación antes de cambios no solicitados**
+- **Explicar brevemente el propósito de cada modificación**
+- **Informar sobre el impacto potencial de los cambios**
+- **Proporcionar alternativas cuando sea apropiado**
+
+### **Consistencia y Estilo**
+- **Mantener SIEMPRE consistencia con el estilo del proyecto**
+- **Seguir las convenciones establecidas en el código existente**
+- **Respetar la arquitectura y patrones del proyecto**
+- **No introducir cambios que rompan la coherencia del sistema**
+
+## 📱 **ORIENTACIÓN MOBILE-FIRST**
+
+### **Diseño Responsivo**
+- **El proyecto es orientado a Mobile first**
+- **Diseñar primero para dispositivos móviles (320px - 768px)**
+- **Adaptar posteriormente para tablets (768px - 1024px)**
+- **Optimizar finalmente para desktop (1024px+)**
+
+### **Implementación Frontend**
+- **Usar breakpoints de Tailwind CSS apropiados para mobile-first**
+- **Priorizar la experiencia de usuario en dispositivos móviles**
+- **Optimizar formularios y navegación para touch**
+- **Asegurar que todos los elementos sean accesibles en pantallas pequeñas**
+
+### **Testing Mobile**
+- **Probar funcionalidad en dispositivos móviles reales**
+- **Verificar responsive design en diferentes tamaños de pantalla**
+- **Validar performance en conexiones móviles**
+- **Asegurar accesibilidad en dispositivos móviles**
+
+---
+
 ## 🎯 **PRIORIDADES DE DESARROLLO**
 
 1. **Funcionalidad Core**: Paquetes, clientes, tarifas
@@ -368,5 +442,5 @@ def test_create_package_success(db_session):
 ---
 
 **Última actualización**: Enero 2025  
-**Versión**: 3.0.0  
+**Versión**: 3.1.0  
 **Mantenido por**: Equipo de Desarrollo PAQUETES EL CLUB

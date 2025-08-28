@@ -2,39 +2,13 @@
 
 {% block title %}Anunciar Paquete - PAQUETES EL CLUB v3.1{% endblock %}
 
-{% block extra_head %}
-<!-- Estilos específicos para esta página -->
-<style>
-    /* Input con icono */
-    .input-with-icon {
-        position: relative;
-    }
-    
-    .input-with-icon input,
-    .input-with-icon textarea {
-        padding-left: 40px;
-    }
-    
-    .input-icon {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6B7280;
-        width: 20px;
-        height: 20px;
-        z-index: 10;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
     <!-- Logo PAPYRUS -->
     <div class="text-center mb-8 px-4">
-        <img src="/static/images/papyrus-logo.png" 
+        <img src="/static/images/logo.png?v=3.1" 
              alt="PAPYRUS - Mucho más que solo papeles" 
-             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain"
+             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain mb-4"
              style="max-height: 120px; min-height: 80px;">
     </div>
 
@@ -53,15 +27,6 @@
         <!-- Contenido del formulario -->
         <div class="p-4 sm:p-8">
             <form id="announcementForm" class="space-y-6">
-                <!-- Mensaje de error -->
-                <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    <div class="flex">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span id="errorText">Error al crear el anuncio</span>
-                    </div>
-                </div>
                 <!-- Nombre del Cliente -->
                 <div class="input-with-icon">
                     <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,6 +36,7 @@
                            id="customer_name" 
                            name="customer_name" 
                            required
+                           autofocus
                            class="w-full px-0 py-3 border-0 border-b-2 border-gray-200 focus:border-papyrus-blue focus:ring-0 bg-transparent transition-colors text-sm sm:text-base"
                            placeholder="Nombre del cliente">
                 </div>
@@ -84,8 +50,9 @@
                            id="guide_number" 
                            name="guide_number" 
                            required
+                           minlength="5"
                            class="w-full px-0 py-3 border-0 border-b-2 border-gray-200 focus:border-papyrus-blue focus:ring-0 bg-transparent transition-colors text-sm sm:text-base"
-                           placeholder="Número de guía">
+                           placeholder="Número de guía (mínimo 5 caracteres)">
                 </div>
                 
                 <!-- Teléfono del Cliente -->
@@ -98,7 +65,9 @@
                            name="phone_number" 
                            required
                            class="w-full px-0 py-3 border-0 border-b-2 border-gray-200 focus:border-papyrus-blue focus:ring-0 bg-transparent transition-colors text-sm sm:text-base"
-                           placeholder="Teléfono del cliente">
+                           placeholder="Numero de Teléfono"
+                           maxlength="20">
+
                 </div>
                 
                 <!-- Términos y Condiciones -->
@@ -168,7 +137,7 @@
                     <p id="modalGuideNumber" class="text-2xl font-bold text-blue-800 tracking-wider"></p>
                 </div>
                 
-                <!-- Código de seguimiento destacado más grande -->
+                <!-- Código de guía destacado más grande -->
                 <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6">
                     <p class="text-sm text-green-600 font-semibold mb-2">Código de Consulta:</p>
                     <p id="modalTrackingCode" class="text-2xl font-bold text-green-800 tracking-wider"></p>
@@ -203,8 +172,6 @@ document.getElementById('announcementForm').addEventListener('submit', function(
     // Obtener elementos
     const submitButton = document.getElementById('submitButton');
     const submitButtonText = document.getElementById('submitButtonText');
-    const errorMessage = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
     const successModal = document.getElementById('successModal');
     const modalGuideNumber = document.getElementById('modalGuideNumber');
     const modalTrackingCode = document.getElementById('modalTrackingCode');
@@ -227,10 +194,17 @@ document.getElementById('announcementForm').addEventListener('submit', function(
         return;
     }
     
+    if (guideNumber.length < 5) {
+        showError('El número de guía debe tener al menos 5 caracteres');
+        return;
+    }
+    
     if (!phoneNumber) {
         showError('El teléfono del cliente es requerido');
         return;
     }
+    
+
     
     if (!termsConditions) {
         showError('Debe aceptar los términos y condiciones');
@@ -240,7 +214,6 @@ document.getElementById('announcementForm').addEventListener('submit', function(
     // Mostrar estado de carga
     submitButton.disabled = true;
     submitButtonText.textContent = 'Procesando...';
-    hideMessages();
     
     // Preparar datos para enviar
     const payload = {
@@ -250,6 +223,7 @@ document.getElementById('announcementForm').addEventListener('submit', function(
     };
     
     // Enviar al backend
+    console.log('Enviando datos al backend:', payload);
     fetch('/api/announcements/', {
         method: 'POST',
         headers: {
@@ -257,9 +231,19 @@ document.getElementById('announcementForm').addEventListener('submit', function(
         },
         body: JSON.stringify(payload)
     })
+    .catch(error => {
+        console.error('Error de red:', error);
+        showError('⚠️ Error de conexión. Por favor, verifica tu conexión a internet e intenta nuevamente.');
+        
+        // Restaurar botón
+        submitButton.disabled = false;
+        submitButtonText.textContent = 'Anunciar';
+    })
     .then(response => {
+        console.log('Respuesta del servidor:', response.status, response.statusText);
         if (!response.ok) {
             return response.json().then(errorData => {
+                console.log('Error del servidor:', errorData);
                 throw new Error(errorData.detail || 'Error al crear el anuncio');
             });
         }
@@ -284,8 +268,20 @@ document.getElementById('announcementForm').addEventListener('submit', function(
         console.error('Error al crear anuncio:', error);
         
         // Mostrar mensaje de error
-        errorText.textContent = error.message || 'Error al crear el anuncio';
-        showError();
+        let errorMessage = 'Error al crear el anuncio';
+        
+        // Manejar diferentes tipos de errores
+        if (error.message.includes('Ya existe un anuncio con ese número de guía')) {
+            errorMessage = 'Ya existe un anuncio con ese número de guía. Por favor, verifica el número o consulta el estado del paquete.';
+        } else if (error.message.includes('400')) {
+            errorMessage = '❌ Error en los datos ingresados. Por favor, verifica la información.';
+        } else if (error.message.includes('500')) {
+            errorMessage = '⚠️ Error del servidor. Por favor, intenta nuevamente en unos momentos.';
+        } else {
+            errorMessage = error.message || 'Error al crear el anuncio';
+        }
+        
+        showError(errorMessage);
         
         // Restaurar botón
         submitButton.disabled = false;
@@ -294,11 +290,51 @@ document.getElementById('announcementForm').addEventListener('submit', function(
 });
 
 function showError(message) {
-    const errorMessage = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
+    console.log('=== INICIO showError ===');
+    console.log('Mensaje recibido:', message);
     
-    errorText.textContent = message;
-    errorMessage.classList.remove('hidden');
+    // Crear un mensaje de error completamente nuevo (modal emergente)
+    const newErrorDiv = document.createElement('div');
+    newErrorDiv.id = 'dynamicErrorMessage';
+    newErrorDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border: 2px solid #ef4444;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        z-index: 9999;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+    `;
+    
+    newErrorDiv.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <div style="width: 48px; height: 48px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                <svg style="width: 24px; height: 24px; color: #ef4444;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+            <h2 style="font-size: 24px; font-weight: 600; color: #111827; margin: 0 0 12px;">${message.includes('Ya existe un anuncio') ? '📦 Guía Duplicada' : '❌ Error en el Anuncio'}</h2>
+            <p style="color: #6b7280; margin: 0; font-size: 16px; line-height: 1.5;">${message}</p>
+        </div>
+        <div style="margin-top: 20px;">
+            <button onclick="document.getElementById('dynamicErrorMessage').remove()" 
+                    style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                Cerrar
+            </button>
+        </div>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(newErrorDiv);
+    
+    console.log('✅ Mensaje de error dinámico creado y mostrado');
+    console.log('=== FIN showError ===');
 }
 
 function showSuccessModal() {
@@ -309,18 +345,9 @@ function showSuccessModal() {
     document.getElementById('closeModalBtn').focus();
 }
 
-function hideError() {
-    const errorMessage = document.getElementById('errorMessage');
-    errorMessage.classList.add('hidden');
-}
-
 function hideSuccessModal() {
     const successModal = document.getElementById('successModal');
     successModal.classList.add('hidden');
-}
-
-function hideMessages() {
-    hideError();
 }
 
 // Event listener para cerrar el modal
@@ -340,9 +367,30 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Limpiar mensajes cuando el usuario empiece a escribir
-document.getElementById('customer_name').addEventListener('input', hideMessages);
-document.getElementById('guide_number').addEventListener('input', hideMessages);
-document.getElementById('phone_number').addEventListener('input', hideMessages);
+// Focus automático en el campo de nombre del cliente al cargar la página
+function applyFocus() {
+    console.log('Aplicando focus...');
+    const customerNameField = document.getElementById('customer_name');
+    if (customerNameField) {
+        console.log('Campo de nombre encontrado, aplicando focus...');
+        customerNameField.focus();
+        console.log('Focus aplicado exitosamente');
+    } else {
+        console.error('❌ Campo de nombre NO encontrado');
+    }
+}
+
+// Intentar focus en diferentes momentos del ciclo de carga
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM cargado, configurando focus...');
+    setTimeout(applyFocus, 100);
+});
+
+// Respaldo con window.onload
+window.addEventListener('load', function() {
+    console.log('Window cargado, verificando focus...');
+    setTimeout(applyFocus, 50);
+});
+
 </script>
 {% endblock %}

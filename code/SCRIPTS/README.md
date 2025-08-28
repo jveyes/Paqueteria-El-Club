@@ -24,7 +24,9 @@ SCRIPTS/
 ├── 📄 test-database.sh              # Probar conexión a BD
 ├── 📄 test-api-endpoints.sh         # Probar endpoints de API
 ├── 📄 quick-test.sh                 # Test rápido
-└── 📄 run-all-tests.sh              # Ejecutar todas las pruebas
+├── 📄 run-all-tests.sh              # Ejecutar todas las pruebas
+├── 📄 restart-for-development.sh    # Reiniciar servicios para desarrollo
+└── 📄 check-volumes.sh              # Verificar volúmenes de desarrollo
 ```
 
 ## 🚀 **USO RÁPIDO**
@@ -87,6 +89,10 @@ SCRIPTS/
 - **test-main-page.sh**: Pruebas completas de la página principal (formulario de anuncio)
 - **quick-test.sh**: Test rápido del sistema
 - **run-all-tests.sh**: Ejecución completa de todas las pruebas
+
+### **🔧 Scripts de Desarrollo**
+- **restart-for-development.sh**: Reinicia servicios para aplicar cambios de volúmenes
+- **check-volumes.sh**: Verifica que los volúmenes estén montados correctamente
 
 ## 📋 **CHECKLIST DE DESPLIEGUE**
 
@@ -179,6 +185,40 @@ docker-compose logs app
 # Recrear archivos .env
 ./code/SCRIPTS/setup-environment.sh
 ```
+
+### **❌ Cambios no se reflejan al instante**
+```bash
+# Verificar volúmenes
+./code/SCRIPTS/check-volumes.sh
+
+# Reiniciar servicios para desarrollo
+./code/SCRIPTS/restart-for-development.sh
+```
+
+## 🚀 **DESARROLLO RÁPIDO**
+
+### **🔄 Para cambios en tiempo real:**
+```bash
+# 1. Verificar volúmenes
+./code/SCRIPTS/check-volumes.sh
+
+# 2. Si hay problemas, reiniciar servicios
+./code/SCRIPTS/restart-for-development.sh
+
+# 3. Los cambios en templates y archivos estáticos se reflejan al instante
+```
+
+### **📁 Volúmenes configurados para desarrollo:**
+- `./src` → `/app/src` (código Python)
+- `./templates` → `/app/templates` (plantillas HTML)
+- `./static` → `/app/static` (archivos estáticos)
+- `./uploads` → `/app/uploads` (archivos subidos)
+- `./logs` → `/app/logs` (logs de aplicación)
+- `./database` → `/app/database` (scripts de BD)
+- `./SCRIPTS` → `/app/SCRIPTS` (scripts de gestión)
+- `./TEST` → `/app/TEST` (archivos de testing)
+- `../docs` → `/app/docs` (documentación)
+- `./monitoring` → `/app/monitoring` (configuración de monitoreo)
 
 ---
 

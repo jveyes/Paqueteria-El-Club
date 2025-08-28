@@ -194,7 +194,7 @@ main() {
         echo "URL de Acceso: $BASE_URL/customers"
         echo ""
         echo "Características de la Página:"
-        echo "  • 🔍 Búsqueda de paquetes por número de seguimiento"
+        echo "  • 🔍 Búsqueda de paquetes por número de guía"
         echo "  • 📢 Anuncios de paquetes con formulario"
         echo "  • 📞 Contacto directo con clientes"
         echo "  • 📱 Diseño móvil responsive"

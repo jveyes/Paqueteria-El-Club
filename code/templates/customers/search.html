@@ -6,13 +6,16 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
     <!-- Logo PAPYRUS -->
     <div class="text-center mb-8">
-        <img src="/static/images/papyrus-logo.png" 
+        <img src="/static/images/logo.png?v=3.1" 
              alt="PAPYRUS Logo" 
-             class="h-12 sm:h-16 mx-auto mb-4">
+             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain mb-4"
+             style="max-height: 120px; min-height: 80px;">
     </div>
 
     <!-- Formulario de Consulta -->
-    <div class="bg-white rounded-xl shadow-lg border border-gray-100">
+    <div class="flex justify-center">
+        <div class="max-w-md w-full">
+            <div class="bg-white rounded-xl shadow-lg border border-gray-100">
         <!-- Header del formulario -->
         <div class="border-b border-gray-100 px-4 sm:px-8 py-4 sm:py-6">
             <div class="text-center">
@@ -50,11 +53,15 @@
                 </div>
             </form>
         </div>
+            </div>
+        </div>
     </div>
 
     <!-- Resultados de búsqueda -->
     <div id="searchResults" class="mt-8 hidden">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100">
+        <div class="flex justify-center">
+            <div class="max-w-md w-full">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100">
             <!-- Header de resultados -->
             <div class="border-b border-gray-100 px-4 sm:px-8 py-4 sm:py-6">
                 <div class="text-center">
@@ -108,12 +115,16 @@
                     </div>
                 </div>
             </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Mensaje de error -->
     <div id="errorMessage" class="mt-8 hidden">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100">
+        <div class="flex justify-center">
+            <div class="max-w-md w-full">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100">
             <!-- Header del mensaje de error -->
             <div class="border-b border-gray-100 px-4 sm:px-8 py-4 sm:py-6">
                 <div class="text-center">
@@ -183,6 +194,8 @@
                     </button>
                 </div>
             </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -199,20 +212,41 @@
 {% block extra_scripts %}
 <script>
     // Funcionalidad de búsqueda
-    document.getElementById('searchForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    console.log('Inicializando JavaScript de búsqueda...');
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM cargado, configurando event listener...');
         
-        const searchQuery = document.getElementById('searchQuery').value.trim();
-        if (!searchQuery) {
-            alert('Por favor ingresa un número de guía o código de seguimiento');
-            return;
+        // Focus automático en el campo de búsqueda al cargar la página
+        const searchQueryField = document.getElementById('searchQuery');
+        if (searchQueryField) {
+            searchQueryField.focus();
         }
         
-        // Mostrar loading
-        showLoading();
-        
-        // Realizar búsqueda
-        searchPackage(searchQuery);
+        const searchForm = document.getElementById('searchForm');
+        if (searchForm) {
+            console.log('Formulario encontrado, agregando event listener...');
+            searchForm.addEventListener('submit', function(e) {
+                console.log('Formulario enviado!');
+                e.preventDefault();
+                
+                const searchQuery = document.getElementById('searchQuery').value.trim();
+                console.log('Query de búsqueda:', searchQuery);
+                
+                if (!searchQuery) {
+                    alert('Por favor ingresa un número de guía o código de guía');
+                    return;
+                }
+                
+                // Mostrar loading
+                showLoading();
+                
+                // Realizar búsqueda
+                searchPackage(searchQuery);
+            });
+        } else {
+            console.error('❌ Formulario de búsqueda NO encontrado!');
+        }
     });
 
     function showLoading() {
@@ -252,7 +286,11 @@
             })
             .catch(error => {
                 hideLoading();
+                console.log('Error en búsqueda:', error.message);
+                console.log('Tipo de error:', typeof error.message);
+                console.log('Llamando a showError con:', error.message);
                 showError(error.message);
+                console.log('showError completado');
             });
     }
 
@@ -500,39 +538,75 @@
     }
 
     function showError(errorType) {
-        document.getElementById('searchResults').classList.add('hidden');
+        console.log('=== INICIO showError ===');
+        console.log('Error recibido:', errorType);
+        
+        // Ocultar resultados de búsqueda y loading
+        const searchResults = document.getElementById('searchResults');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+        if (searchResults) searchResults.classList.add('hidden');
+        if (loadingSpinner) loadingSpinner.classList.add('hidden');
         
         let errorMessage = '';
         let errorTitle = '';
         
         switch(errorType) {
             case 'NOT_FOUND':
-                errorTitle = 'Paquete no encontrado';
-                errorMessage = `No se encontró ningún paquete con el número de guía o código de consulta ingresado.`;
+                errorTitle = '📦 Paquete no encontrado';
+                errorMessage = `No se encontró ningún paquete con el número de guía o código de guía ingresado.`;
                 break;
             case 'SEARCH_ERROR':
-                errorTitle = 'Error en la búsqueda';
+                errorTitle = '⚠️ Error en la búsqueda';
                 errorMessage = 'Ocurrió un error al procesar tu consulta. Por favor, intenta nuevamente.';
                 break;
             default:
-                errorTitle = 'Error';
+                errorTitle = '❌ Error';
                 errorMessage = errorType || 'Ocurrió un error inesperado.';
         }
         
-        // Actualizar el título del error
-        const errorTitleElement = document.querySelector('#errorMessage h3');
-        if (errorTitleElement) {
-            errorTitleElement.textContent = errorTitle;
-        }
+        // Crear un mensaje de error completamente nuevo
+        const newErrorDiv = document.createElement('div');
+        newErrorDiv.id = 'dynamicErrorMessage';
+        newErrorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #ef4444;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 9999;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        `;
         
-        // Actualizar el mensaje del error
-        document.getElementById('errorText').textContent = errorMessage;
-        document.getElementById('errorMessage').classList.remove('hidden');
+        newErrorDiv.innerHTML = `
+            <div style="margin-bottom: 16px;">
+                <div style="width: 48px; height: 48px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                    <svg style="width: 24px; height: 24px; color: #ef4444;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <h2 style="font-size: 24px; font-weight: 600; color: #111827; margin: 0 0 12px;">${errorTitle}</h2>
+                <p style="color: #6b7280; margin: 0; font-size: 16px; line-height: 1.5;">${errorMessage}</p>
+            </div>
+            <div style="margin-top: 20px;">
+                <button onclick="document.getElementById('dynamicErrorMessage').remove()" 
+                        style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                    Cerrar
+                </button>
+            </div>
+        `;
         
-        // Scroll al mensaje de error
-        document.getElementById('errorMessage').scrollIntoView({ 
-            behavior: 'smooth' 
-        });
+        // Agregar al body
+        document.body.appendChild(newErrorDiv);
+        
+        console.log('✅ Mensaje de error dinámico creado y mostrado');
+        console.log('=== FIN showError ===');
     }
 </script>
 

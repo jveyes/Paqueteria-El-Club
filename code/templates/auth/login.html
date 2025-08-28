@@ -56,9 +56,9 @@
 <div class="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
     <!-- Logo PAPYRUS -->
     <div class="text-center mb-8 px-4">
-        <img src="/static/images/papyrus-logo.png" 
+        <img src="/static/images/logo.png?v=3.1" 
              alt="PAPYRUS - Mucho más que solo papeles" 
-             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain"
+             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain mb-4"
              style="max-height: 120px; min-height: 80px;">
     </div>
 
@@ -272,8 +272,14 @@
     document.getElementById('username_or_email').addEventListener('input', hideError);
     document.getElementById('password').addEventListener('input', hideError);
     
-    // Verificar si ya está autenticado al cargar la página
+    // Focus automático en el campo de usuario/email al cargar la página
     document.addEventListener('DOMContentLoaded', function() {
+        const usernameField = document.getElementById('username_or_email');
+        if (usernameField) {
+            usernameField.focus();
+        }
+        
+        // Verificar si ya está autenticado al cargar la página
         const token = localStorage.getItem('access_token');
         if (token) {
             // Verificar si el token es válido

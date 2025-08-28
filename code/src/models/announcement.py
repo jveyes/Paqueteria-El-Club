@@ -9,8 +9,9 @@ from datetime import datetime
 import uuid
 
 from .base import BaseModel
+from ..database.database import Base
 
-class PackageAnnouncement(BaseModel):
+class PackageAnnouncement(BaseModel, Base):
     """Modelo para anuncios de paquetes"""
     __tablename__ = "package_announcements"
     
@@ -29,6 +30,10 @@ class PackageAnnouncement(BaseModel):
     # Timestamps
     announced_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     processed_at = Column(DateTime, nullable=True)
+    
+    # Timestamps del modelo base (se generan automáticamente)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relaciones (opcional)
     customer_id = Column(UUID(as_uuid=True), nullable=True)
