@@ -411,11 +411,8 @@ class NotificationService:
             return False
     
     async def _send_email(self, to_email: str, subject: str, message: str) -> bool:
-        """Enviar email usando SMTP (simulado)"""
-        # Aquí se implementaría el envío real de email
-        # Por ahora solo simulamos
-        logger.info(f"Email simulado a {to_email}: {subject} - {message}")
-        return True
+        """Enviar email usando SMTP"""
+        return await self._send_email_real(to_email, subject, message)
     
     async def _send_sms(self, phone: str, message: str) -> bool:
         """Enviar SMS usando LIWA.co (simulado)"""

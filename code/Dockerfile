@@ -47,18 +47,16 @@ COPY . .
 # Crear directorios necesarios
 RUN mkdir -p /app/uploads /app/logs /app/static /app/templates /app/monitoring
 
-# Copiar archivos de configuración
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
-COPY nginx/conf.d/ /etc/nginx/conf.d/
+# Crear directorios de configuración si no existen
+RUN mkdir -p /etc/nginx/conf.d
 
 # Copiar scripts de gestión
-COPY SCRIPTS/ /app/SCRIPTS/
-RUN chmod +x /app/SCRIPTS/*.sh
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.sh
 
 # Copiar documentación
 COPY README.md /app/
-COPY SCRIPTS/DEPLOYMENT-GUIDE.md /app/SCRIPTS/
-COPY SCRIPTS/README.md /app/SCRIPTS/
+COPY docs/ /app/docs/
 
 # Copiar esquema de base de datos
 COPY database/database.sql /app/

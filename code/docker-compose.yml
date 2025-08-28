@@ -74,16 +74,14 @@ services:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
       - ./database:/app/database
-      - ./SCRIPTS:/app/SCRIPTS
-      - ./TEST:/app/TEST
-      - ../docs:/app/docs
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
       - ./monitoring:/app/monitoring
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
       - ./requirements.txt:/app/requirements.txt
       - ./requirements-dev.txt:/app/requirements-dev.txt
-      - ./config.py:/app/config.py
-      - ./main.py:/app/main.py
     ports:
       - "8001:8000"
     depends_on:
@@ -110,7 +108,7 @@ services:
       - SMTP_HOST=taylor.mxrouting.net
       - SMTP_PORT=587
       - SMTP_USER=guia@papyrus.com.co
-      - SMTP_PASSWORD=90@5fmCU%gabP4%*
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
       - LIWA_API_KEY=${LIWA_API_KEY}
       - ENVIRONMENT=development
     volumes:
@@ -120,22 +118,26 @@ services:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
       - ./database:/app/database
-      - ./SCRIPTS:/app/SCRIPTS
-      - ./TEST:/app/TEST
-      - ../docs:/app/docs
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
       - ./monitoring:/app/monitoring
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
       - ./requirements.txt:/app/requirements.txt
       - ./requirements-dev.txt:/app/requirements-dev.txt
-      - ./config.py:/app/config.py
-      - ./main.py:/app/main.py
     depends_on:
       - postgres
       - redis
     networks:
       - paqueteria_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "src.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:

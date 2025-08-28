@@ -10,6 +10,8 @@ import uuid
 import enum
 
 from ..database.database import Base
+from .message import Message
+from .file import File
 
 class UserRole(str, enum.Enum):
     """Roles de usuario disponibles"""

@@ -204,6 +204,13 @@ document.getElementById('announcementForm').addEventListener('submit', function(
         return;
     }
     
+    // Validación de teléfono (al menos 7 dígitos)
+    const phoneDigits = phoneNumber.replace(/\D/g, '');
+    if (phoneDigits.length < 7) {
+        showError('El teléfono debe tener al menos 7 dígitos');
+        return;
+    }
+    
 
     
     if (!termsConditions) {
@@ -244,7 +251,16 @@ document.getElementById('announcementForm').addEventListener('submit', function(
         if (!response.ok) {
             return response.json().then(errorData => {
                 console.log('Error del servidor:', errorData);
-                throw new Error(errorData.detail || 'Error al crear el anuncio');
+                
+                // Solo mostrar error específico de guía duplicada
+                let errorMessage = 'Error del sistema. Por favor, comuníquese con el administrador.';
+                
+                if (response.status === 400 && errorData.detail && 
+                    errorData.detail.includes('Ya existe un anuncio con ese número de guía')) {
+                    errorMessage = 'Ya existe un anuncio con ese número de guía. Por favor, verifica el número o consulta el estado del paquete.';
+                }
+                
+                throw new Error(errorMessage);
             });
         }
         return response.json();
@@ -268,17 +284,11 @@ document.getElementById('announcementForm').addEventListener('submit', function(
         console.error('Error al crear anuncio:', error);
         
         // Mostrar mensaje de error
-        let errorMessage = 'Error al crear el anuncio';
+        let errorMessage = 'Error del sistema. Por favor, comuníquese con el administrador.';
         
-        // Manejar diferentes tipos de errores
+        // Solo mostrar error específico de guía duplicada
         if (error.message.includes('Ya existe un anuncio con ese número de guía')) {
             errorMessage = 'Ya existe un anuncio con ese número de guía. Por favor, verifica el número o consulta el estado del paquete.';
-        } else if (error.message.includes('400')) {
-            errorMessage = '❌ Error en los datos ingresados. Por favor, verifica la información.';
-        } else if (error.message.includes('500')) {
-            errorMessage = '⚠️ Error del servidor. Por favor, intenta nuevamente en unos momentos.';
-        } else {
-            errorMessage = error.message || 'Error al crear el anuncio';
         }
         
         showError(errorMessage);
@@ -319,7 +329,7 @@ function showError(message) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                 </svg>
             </div>
-            <h2 style="font-size: 24px; font-weight: 600; color: #111827; margin: 0 0 12px;">${message.includes('Ya existe un anuncio') ? '📦 Guía Duplicada' : '❌ Error en el Anuncio'}</h2>
+            <h2 style="font-size: 24px; font-weight: 600; color: #111827; margin: 0 0 12px;">${message.includes('Ya existe un anuncio') ? '📦 Guía Duplicada' : '⚠️ Error del Sistema'}</h2>
             <p style="color: #6b7280; margin: 0; font-size: 16px; line-height: 1.5;">${message}</p>
         </div>
         <div style="margin-top: 20px;">
