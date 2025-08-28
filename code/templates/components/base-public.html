@@ -8,7 +8,12 @@
     <meta name="author" content="JEMAVI">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-papyrus.png?v=3.1">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-papyrus.png?v=3.1">
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico?v=3.1">
+    <link rel="shortcut icon" href="/static/images/favicon.ico?v=3.1">
+    <link rel="apple-touch-icon" href="/static/images/favicon-papyrus.png?v=3.1">
+    <meta name="msapplication-TileImage" content="/static/images/favicon-papyrus.png?v=3.1">
     
     <!-- Open Graph -->
     <meta property="og:title" content="PAQUETES EL CLUB v3.1">
@@ -96,6 +101,22 @@
         
         /* Custom scrollbar */
         ::-webkit-scrollbar {
+        
+        /* Asegurar que el header y footer mantengan tamaño consistente */
+        header {
+            height: 64px; /* Altura fija del header */
+            flex-shrink: 0;
+        }
+        
+        footer {
+            height: 60px; /* Altura fija del footer */
+            flex-shrink: 0;
+        }
+        
+        /* Asegurar que el contenido principal se expanda correctamente */
+        main {
+            flex: 1;
+        }
             width: 8px;
         }
         
@@ -111,13 +132,30 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        
+        /* Sidebar transitions */
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
 </head>
-
 <body class="bg-gray-50 min-h-screen flex flex-col" x-data="{ mobileMenuOpen: false }">
-    
     <!-- Header Component -->
     <header class="bg-white shadow-sm border-b flex-shrink-0" x-data="{ mobileMenuOpen: false }">
         <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
@@ -125,10 +163,8 @@
                 <!-- Logo/Nombre del proyecto -->
                 <div class="flex items-center space-x-2 sm:space-x-4 md:space-x-8">
                     <div class="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-papyrus-blue flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                        </svg>
-                        <h1 class="text-base sm:text-lg md:text-xl font-light text-gray-900 flex items-center leading-none">PAQUETES</h1>
+                        <img src="/static/images/favicon.png?v=3.1" alt="PAPYRUS Logo" class="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 flex-shrink-0">
+                        <h1 class="text-base sm:text-lg md:text-xl font-light text-gray-900 flex items-center leading-none">EL CLUB</h1>
                     </div>
 
                     <!-- Navegación Desktop -->
@@ -279,7 +315,7 @@
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 sm:py-4 space-y-2 sm:space-y-0">
                 <!-- Copyright -->
                 <div class="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-                    &copy; 2025 PAQUETES EL CLUB - Desarrollado por <a href="https://jemavi.co" class="text-papyrus-blue hover:text-blue-700 underline" target="_blank">JEMAVI</a>
+                    Desarrollado por <a href="https://jemavi.co" class="text-papyrus-blue hover:text-blue-700 underline" target="_blank">JEMAVI</a> | © 2025 PAPYRUS
                 </div>
                 
                 <!-- Enlaces -->
@@ -309,5 +345,28 @@
 
     <!-- Scripts adicionales -->
     {% block extra_scripts %}{% endblock %}
+
+    <!-- Botón To Top -->
+    <button id="toTopBtn" class="fixed bottom-8 right-8 bg-gradient-to-r from-papyrus-blue to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 opacity-0 invisible transform scale-90 hover:scale-110 z-50 border-2 border-white/20 backdrop-blur-sm" aria-label="Volver arriba">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </button>
+
+    <script>
+        const toTopBtn = document.getElementById('toTopBtn');
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 300) {
+                toTopBtn.classList.remove('opacity-0', 'invisible', 'scale-90');
+                toTopBtn.classList.add('opacity-100', 'visible', 'scale-100');
+            } else {
+                toTopBtn.classList.add('opacity-0', 'invisible', 'scale-90');
+                toTopBtn.classList.remove('opacity-100', 'visible', 'scale-100');
+            }
+        });
+        toTopBtn.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
 </body>
 </html>

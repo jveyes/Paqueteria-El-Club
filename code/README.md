@@ -1,186 +1,159 @@
-# 🚀 PAQUETES EL CLUB v3.0
+# PAQUETES EL CLUB v3.1 - Sistema de Gestión de Paquetería
 
-Sistema de gestión de paquetería con tarifas automáticas, notificaciones multicanal y dashboard administrativo.
+## 📋 Descripción
+Sistema completo de gestión de paquetería desarrollado con FastAPI, PostgreSQL y Docker. Optimizado para manejar anuncios de paquetes, seguimiento y gestión de clientes.
 
-## 📋 Características
+## 🏗️ Estructura del Proyecto
 
-- ✅ **Gestión de Paquetes**: Anunciar, recibir, entregar y cancelar paquetes
-- ✅ **Clientes Simplificados**: Solo nombre, teléfono y número de tracking
-- ✅ **Tarifas Automáticas**: Cálculo automático de costos
-- ✅ **Notificaciones**: Email y SMS (LIWA.co)
-- ✅ **Dashboard**: Estadísticas y métricas en tiempo real
-- ✅ **API RESTful**: Documentación automática con Swagger
-- ✅ **Autenticación JWT**: Roles y permisos
-- ✅ **Monitoreo**: Prometheus y Grafana
-- ✅ **Responsive**: Diseño mobile-first
+```
+code/
+├── src/                    # Código fuente principal
+│   ├── routers/           # Endpoints de la API
+│   ├── models/            # Modelos de base de datos
+│   ├── schemas/           # Esquemas de validación
+│   ├── services/          # Lógica de negocio
+│   ├── utils/             # Utilidades y helpers
+│   └── dependencies.py    # Dependencias de la aplicación
+├── templates/             # Plantillas HTML
+├── static/                # Archivos estáticos (CSS, JS, imágenes)
+├── database/              # Scripts de base de datos
+├── alembic/               # Migraciones de base de datos
+├── scripts/               # Scripts útiles para desarrollo
+├── tests/                 # Tests y configuraciones de testing
+├── docs/                  # Documentación del proyecto
+├── uploads/               # Archivos subidos por usuarios
+├── logs/                  # Logs de la aplicación
+├── config/                # Configuraciones
+├── nginx/                 # Configuración de Nginx
+├── ssl/                   # Certificados SSL
+├── monitoring/            # Configuración de monitoreo
+├── docker-compose.yml     # Configuración de Docker Compose
+├── Dockerfile             # Dockerfile para la aplicación
+├── requirements.txt       # Dependencias de Python
+└── alembic.ini           # Configuración de Alembic
+```
 
-## 🛠️ Tecnologías
+## 🚀 Instalación y Configuración
 
-- **Backend**: FastAPI, SQLAlchemy, Alembic
-- **Base de Datos**: PostgreSQL 15
-- **Cache**: Redis 7.0
-- **Frontend**: HTMX, Tailwind CSS, Alpine.js
-- **Contenedores**: Docker, Docker Compose
-- **Monitoreo**: Prometheus, Grafana
-- **Web Server**: Nginx
+### Prerrequisitos
+- Docker y Docker Compose
+- Python 3.8+
+- PostgreSQL
 
-## 🚀 Instalación
-
-### 1. Clonar el repositorio
+### Configuración Rápida
 ```bash
+# 1. Clonar el repositorio
 git clone <repository-url>
-cd paqueteria-v3.0/CODE
-```
+cd Paqueteria-v3.1
 
-### 2. Configurar variables de entorno
-```bash
-cp env.example .env
-# Editar .env con tus configuraciones
-```
+# 2. Configurar variables de entorno
+cp code/env.example code/.env
+# Editar code/.env con tus configuraciones
 
-### 3. Ejecutar script de configuración
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-### 4. Iniciar servicios
-```bash
+# 3. Iniciar servicios
+cd code
 docker-compose up -d
-```
 
-### 5. Ejecutar migraciones
-```bash
+# 4. Ejecutar migraciones
 docker-compose exec app alembic upgrade head
 ```
 
-## 🌐 Acceso
+## 🌐 Acceso a la Aplicación
 
-- **Aplicación**: http://localhost
-- **API Docs**: http://localhost/api/docs
-- **Grafana**: http://localhost:3000 (admin/Grafana2025!Secure)
-- **Prometheus**: http://localhost:9090
+- **Aplicación Principal**: http://localhost
+- **API Documentation**: http://localhost/docs
+- **Health Check**: http://localhost/health
 
-## 📊 Estructura del Proyecto
+## 📊 Funcionalidades Principales
 
+### 🔐 Autenticación
+- Registro de usuarios
+- Login con email/username
+- Restablecimiento de contraseña
+- Gestión de sesiones
+
+### 📦 Gestión de Paquetes
+- Anuncio de paquetes
+- Seguimiento de paquetes
+- Estados de paquetes (anunciado, recibido, entregado, cancelado)
+- Cálculo automático de tarifas
+
+### 👥 Gestión de Clientes
+- Registro de clientes
+- Historial de paquetes por cliente
+- Información de contacto
+
+### 📧 Notificaciones
+- Sistema de notificaciones por email
+- Notificaciones automáticas de cambios de estado
+
+## 🛠️ Desarrollo
+
+### Scripts Útiles
+```bash
+# Ejecutar tests
+python code/tests/run_all_tests.py
+
+# Crear backup de base de datos
+bash code/scripts/create-backup.sh
+
+# Test rápido del sistema
+bash code/scripts/quick-test.sh
 ```
-CODE/
-├── src/                    # Código fuente Python
-│   ├── database/          # Configuración de BD
-│   ├── models/            # Modelos SQLAlchemy
-│   ├── schemas/           # Esquemas Pydantic
-│   ├── routers/           # Endpoints API
-│   ├── services/          # Lógica de negocio
-│   └── utils/             # Utilidades
-├── alembic/               # Migraciones de BD
-├── nginx/                 # Configuración Nginx
-├── monitoring/            # Configuración monitoreo
-├── templates/             # Templates HTML
-├── static/                # Archivos estáticos
-├── uploads/               # Archivos subidos
-└── logs/                  # Logs de aplicación
+
+### Estructura de Testing
+```
+tests/
+├── run_all_tests.py      # Ejecutor principal de tests
+├── data/                 # Datos de prueba
+├── results/              # Resultados de tests
+├── reports/              # Reportes de testing
+├── screenshots/          # Capturas de pantalla de tests
+└── config/               # Configuraciones de testing
 ```
 
-## 🔧 Configuración
+## 📚 Documentación
+
+- **Guía de Deployment**: `docs/DEPLOYMENT-GUIDE.md`
+- **README de Scripts**: `docs/README.md`
+- **API Documentation**: http://localhost/docs
+
+## 🔧 Configuración de Entorno
 
 ### Variables de Entorno Principales
-
 ```env
-# Base de Datos
-POSTGRES_PASSWORD=Paqueteria2025!Secure
-DATABASE_URL=postgresql://paqueteria_user:Paqueteria2025!Secure@postgres:5432/paqueteria
-
-# Cache
-REDIS_PASSWORD=Redis2025!Secure
-
-# Seguridad
-SECRET_KEY=paqueteria-secret-key-2025-super-secure-jwt-token-key-for-authentication
-
-# Email
-SMTP_HOST=taylor.mxrouting.net
-SMTP_USER=guia@papyrus.com.co
-SMTP_PASSWORD=90@5fmCU%gabP4%*
-
-# SMS (LIWA.co)
-LIWA_API_KEY=your_liwa_api_key_here
-LIWA_PHONE_NUMBER=your_liwa_phone_number_here
+DATABASE_URL=postgresql://user:password@localhost:5432/paqueteria
+SECRET_KEY=your-secret-key
+DEBUG=True
+ENVIRONMENT=development
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USERNAME=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
 ```
 
-## 📱 API Endpoints
+## 📈 Monitoreo
 
-### Autenticación
-- `POST /api/auth/register` - Registrar usuario
-- `POST /api/auth/login` - Iniciar sesión
-- `GET /api/auth/me` - Información del usuario
-
-### Paquetes
-- `POST /api/packages/announce` - Anunciar paquete
-- `GET /api/packages/{tracking_number}` - Consultar paquete
-- `PUT /api/packages/{id}/receive` - Recibir paquete
-- `PUT /api/packages/{id}/deliver` - Entregar paquete
-- `GET /api/packages/stats/summary` - Estadísticas
-
-### Clientes
-- `GET /api/customers/` - Listar clientes
-- `GET /api/customers/{tracking_number}` - Obtener cliente
-
-### Tarifas
-- `GET /api/rates/` - Listar tarifas
-- `POST /api/rates/calculate` - Calcular tarifa
-
-## 🔍 Monitoreo
-
-### Métricas Disponibles
-- Número de paquetes por estado
-- Ingresos totales
-- Tiempo de respuesta de la API
-- Uso de recursos del sistema
-
-### Alertas Configuradas
-- Paquetes sin entregar por más de 7 días
-- Errores de API > 5%
-- Uso de CPU > 80%
-
-## 🚀 Despliegue
-
-### Desarrollo Local
-```bash
-docker-compose up -d
-```
-
-### Producción
-```bash
-# Configurar SSL
-# Configurar dominio
-# Configurar backup automático
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-## 📝 Logs
-
-Los logs se encuentran en:
-- **Aplicación**: `logs/app.log`
-- **Nginx**: `logs/nginx/`
-- **Docker**: `docker-compose logs -f`
+- **Health Checks**: Endpoints automáticos de verificación
+- **Logs**: Sistema de logging estructurado
+- **Métricas**: Endpoints de métricas del sistema
 
 ## 🤝 Contribución
 
 1. Fork el proyecto
-2. Crear rama feature (`git checkout -b feature/AmazingFeature`)
-3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
 4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
+5. Abrir un Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-## 📞 Soporte
+## 🆘 Soporte
 
-- **Email**: guia@papyrus.com.co
-- **Teléfono**: 3334004007
-- **Dirección**: Cra. 91 #54-120, Local 12
+Para soporte técnico o preguntas sobre el proyecto, contacta al equipo de desarrollo.
 
 ---
 
-**PAQUETES EL CLUB v3.0** - Sistema de gestión de paquetería profesional
+**PAQUETES EL CLUB v3.1** - Sistema de gestión de paquetería optimizado y escalable.

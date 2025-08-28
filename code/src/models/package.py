@@ -10,6 +10,8 @@ from datetime import datetime
 
 from .base import BaseModel
 from ..database.database import Base
+from .customer import Customer
+from .file import File
 
 class PackageStatus(str, enum.Enum):
     """Estados del paquete"""

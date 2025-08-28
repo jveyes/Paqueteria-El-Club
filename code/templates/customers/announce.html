@@ -2,39 +2,13 @@
 
 {% block title %}Anunciar Paquete - PAQUETES EL CLUB v3.1{% endblock %}
 
-{% block extra_head %}
-<!-- Estilos específicos para esta página -->
-<style>
-    /* Input con icono */
-    .input-with-icon {
-        position: relative;
-    }
-    
-    .input-with-icon input,
-    .input-with-icon textarea {
-        padding-left: 40px;
-    }
-    
-    .input-icon {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6B7280;
-        width: 20px;
-        height: 20px;
-        z-index: 10;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
     <!-- Logo PAPYRUS -->
     <div class="text-center mb-8 px-4">
-        <img src="/static/images/papyrus-logo.png" 
+        <img src="/static/images/logo.png?v=3.1" 
              alt="PAPYRUS - Mucho más que solo papeles" 
-             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain"
+             class="mx-auto w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto object-contain mb-4"
              style="max-height: 120px; min-height: 80px;">
     </div>
 
@@ -62,6 +36,7 @@
                            id="customer_name" 
                            name="customer_name" 
                            required
+                           autofocus
                            class="w-full px-0 py-3 border-0 border-b-2 border-gray-200 focus:border-papyrus-blue focus:ring-0 bg-transparent transition-colors text-sm sm:text-base"
                            placeholder="Nombre del cliente">
                 </div>
@@ -75,8 +50,9 @@
                            id="guide_number" 
                            name="guide_number" 
                            required
+                           minlength="5"
                            class="w-full px-0 py-3 border-0 border-b-2 border-gray-200 focus:border-papyrus-blue focus:ring-0 bg-transparent transition-colors text-sm sm:text-base"
-                           placeholder="Número de guía">
+                           placeholder="Número de guía (mínimo 5 caracteres)">
                 </div>
                 
                 <!-- Teléfono del Cliente -->
@@ -89,7 +65,9 @@
                            name="phone_number" 
                            required
                            class="w-full px-0 py-3 border-0 border-b-2 border-gray-200 focus:border-papyrus-blue focus:ring-0 bg-transparent transition-colors text-sm sm:text-base"
-                           placeholder="Teléfono del cliente">
+                           placeholder="Numero de Teléfono"
+                           maxlength="20">
+
                 </div>
                 
                 <!-- Términos y Condiciones -->
@@ -116,11 +94,12 @@
                 <!-- Botón de Envío -->
                 <div class="text-center pt-4">
                     <button type="submit" 
+                            id="submitButton"
                             class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-papyrus-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-papyrus-blue transition-colors">
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
-                        Anunciar
+                        <span id="submitButtonText">Anunciar</span>
                     </button>
                 </div>
             </form>
@@ -128,4 +107,300 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Éxito -->
+<div id="successModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
+        <div class="text-center">
+            <!-- Icono de éxito más grande -->
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            
+            <!-- Título más grande -->
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                ¡Paquete Anunciado Exitosamente!
+            </h3>
+            
+            <!-- Mensaje más grande -->
+            <div class="px-4 py-2">
+                <p class="text-base text-gray-600 mb-6 leading-relaxed">
+                    Tu paquete ha sido registrado en nuestro sistema. 
+                    Nos pondremos en contacto contigo para confirmarte al recibirlo.
+                </p>
+                
+                <!-- Número de guía destacado más grande -->
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                    <p class="text-sm text-blue-600 font-semibold mb-2">Número de Guía:</p>
+                    <p id="modalGuideNumber" class="text-2xl font-bold text-blue-800 tracking-wider"></p>
+                </div>
+                
+                <!-- Código de guía destacado más grande -->
+                <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6">
+                    <p class="text-sm text-green-600 font-semibold mb-2">Código de Consulta:</p>
+                    <p id="modalTrackingCode" class="text-2xl font-bold text-green-800 tracking-wider"></p>
+                </div>
+                
+                <!-- Información adicional más grande -->
+                <div class="text-sm text-gray-600 space-y-2 mb-6">
+                    <p class="leading-relaxed">
+                        • Puedes consultar el estado de tu paquete con ambos números y así saber cuál es su estado.
+                    </p>
+                    <p class="leading-relaxed">
+                        • Recibirás confirmación por WhatsApp o SMS cuando el paquete cambie de estado.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Botón más grande -->
+            <div class="flex justify-center mt-6">
+                <button id="closeModalBtn" 
+                        class="px-8 py-3 bg-papyrus-blue text-white text-lg font-semibold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-papyrus-blue transition-colors shadow-lg">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('announcementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Obtener elementos
+    const submitButton = document.getElementById('submitButton');
+    const submitButtonText = document.getElementById('submitButtonText');
+    const successModal = document.getElementById('successModal');
+    const modalGuideNumber = document.getElementById('modalGuideNumber');
+    const modalTrackingCode = document.getElementById('modalTrackingCode');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    
+    // Obtener valores del formulario
+    const customerName = document.getElementById('customer_name').value.trim();
+    const guideNumber = document.getElementById('guide_number').value.trim();
+    const phoneNumber = document.getElementById('phone_number').value.trim();
+    const termsConditions = document.getElementById('terms_conditions').checked;
+    
+    // Validaciones básicas
+    if (!customerName) {
+        showError('El nombre del cliente es requerido');
+        return;
+    }
+    
+    if (!guideNumber) {
+        showError('El número de guía es requerido');
+        return;
+    }
+    
+    if (guideNumber.length < 5) {
+        showError('El número de guía debe tener al menos 5 caracteres');
+        return;
+    }
+    
+    if (!phoneNumber) {
+        showError('El teléfono del cliente es requerido');
+        return;
+    }
+    
+    // Validación de teléfono (al menos 7 dígitos)
+    const phoneDigits = phoneNumber.replace(/\D/g, '');
+    if (phoneDigits.length < 7) {
+        showError('El teléfono debe tener al menos 7 dígitos');
+        return;
+    }
+    
+
+    
+    if (!termsConditions) {
+        showError('Debe aceptar los términos y condiciones');
+        return;
+    }
+    
+    // Mostrar estado de carga
+    submitButton.disabled = true;
+    submitButtonText.textContent = 'Procesando...';
+    
+    // Preparar datos para enviar
+    const payload = {
+        customer_name: customerName,
+        guide_number: guideNumber.toUpperCase(),
+        phone_number: phoneNumber
+    };
+    
+    // Enviar al backend
+    console.log('Enviando datos al backend:', payload);
+    fetch('/api/announcements/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .catch(error => {
+        console.error('Error de red:', error);
+        showError('⚠️ Error de conexión. Por favor, verifica tu conexión a internet e intenta nuevamente.');
+        
+        // Restaurar botón
+        submitButton.disabled = false;
+        submitButtonText.textContent = 'Anunciar';
+    })
+    .then(response => {
+        console.log('Respuesta del servidor:', response.status, response.statusText);
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                console.log('Error del servidor:', errorData);
+                
+                // Solo mostrar error específico de guía duplicada
+                let errorMessage = 'Error del sistema. Por favor, comuníquese con el administrador.';
+                
+                if (response.status === 400 && errorData.detail && 
+                    errorData.detail.includes('Ya existe un anuncio con ese número de guía')) {
+                    errorMessage = 'Ya existe un anuncio con ese número de guía. Por favor, verifica el número o consulta el estado del paquete.';
+                }
+                
+                throw new Error(errorMessage);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Paquete anunciado exitosamente:', data);
+        
+        // Mostrar modal de éxito
+        modalGuideNumber.textContent = data.guide_number;
+        modalTrackingCode.textContent = data.tracking_code;
+        showSuccessModal();
+        
+        // Limpiar formulario
+        document.getElementById('announcementForm').reset();
+        
+        // Restaurar botón
+        submitButton.disabled = false;
+        submitButtonText.textContent = 'Anunciar';
+    })
+    .catch(error => {
+        console.error('Error al crear anuncio:', error);
+        
+        // Mostrar mensaje de error
+        let errorMessage = 'Error del sistema. Por favor, comuníquese con el administrador.';
+        
+        // Solo mostrar error específico de guía duplicada
+        if (error.message.includes('Ya existe un anuncio con ese número de guía')) {
+            errorMessage = 'Ya existe un anuncio con ese número de guía. Por favor, verifica el número o consulta el estado del paquete.';
+        }
+        
+        showError(errorMessage);
+        
+        // Restaurar botón
+        submitButton.disabled = false;
+        submitButtonText.textContent = 'Anunciar';
+    });
+});
+
+function showError(message) {
+    console.log('=== INICIO showError ===');
+    console.log('Mensaje recibido:', message);
+    
+    // Crear un mensaje de error completamente nuevo (modal emergente)
+    const newErrorDiv = document.createElement('div');
+    newErrorDiv.id = 'dynamicErrorMessage';
+    newErrorDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border: 2px solid #ef4444;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        z-index: 9999;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+    `;
+    
+    newErrorDiv.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <div style="width: 48px; height: 48px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                <svg style="width: 24px; height: 24px; color: #ef4444;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+            <h2 style="font-size: 24px; font-weight: 600; color: #111827; margin: 0 0 12px;">${message.includes('Ya existe un anuncio') ? '📦 Guía Duplicada' : '⚠️ Error del Sistema'}</h2>
+            <p style="color: #6b7280; margin: 0; font-size: 16px; line-height: 1.5;">${message}</p>
+        </div>
+        <div style="margin-top: 20px;">
+            <button onclick="document.getElementById('dynamicErrorMessage').remove()" 
+                    style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                Cerrar
+            </button>
+        </div>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(newErrorDiv);
+    
+    console.log('✅ Mensaje de error dinámico creado y mostrado');
+    console.log('=== FIN showError ===');
+}
+
+function showSuccessModal() {
+    const successModal = document.getElementById('successModal');
+    successModal.classList.remove('hidden');
+    
+    // Enfocar el botón de cerrar para accesibilidad
+    document.getElementById('closeModalBtn').focus();
+}
+
+function hideSuccessModal() {
+    const successModal = document.getElementById('successModal');
+    successModal.classList.add('hidden');
+}
+
+// Event listener para cerrar el modal
+closeModalBtn.addEventListener('click', hideSuccessModal);
+
+// Cerrar modal al hacer clic fuera de él
+successModal.addEventListener('click', function(e) {
+    if (e.target === successModal) {
+        hideSuccessModal();
+    }
+});
+
+// Cerrar modal con la tecla Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !successModal.classList.contains('hidden')) {
+        hideSuccessModal();
+    }
+});
+
+// Focus automático en el campo de nombre del cliente al cargar la página
+function applyFocus() {
+    console.log('Aplicando focus...');
+    const customerNameField = document.getElementById('customer_name');
+    if (customerNameField) {
+        console.log('Campo de nombre encontrado, aplicando focus...');
+        customerNameField.focus();
+        console.log('Focus aplicado exitosamente');
+    } else {
+        console.error('❌ Campo de nombre NO encontrado');
+    }
+}
+
+// Intentar focus en diferentes momentos del ciclo de carga
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM cargado, configurando focus...');
+    setTimeout(applyFocus, 100);
+});
+
+// Respaldo con window.onload
+window.addEventListener('load', function() {
+    console.log('Window cargado, verificando focus...');
+    setTimeout(applyFocus, 50);
+});
+
+</script>
 {% endblock %}

@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     
     # Cache Redis
-    redis_url: str = "redis://:Redis2025!Secure@redis:6379/0"
-    redis_password: str = "Redis2025!Secure"
+    redis_url: str = "redis://redis:6379/0"
+    redis_password: str = ""
     redis_host: str = "redis"
     redis_port: int = 6379
     redis_db: int = 0
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     smtp_host: str = "taylor.mxrouting.net"
     smtp_port: int = 587
     smtp_user: str = "guia@papyrus.com.co"
-    smtp_password: str = "90@5fmCU%gabP4%*"
+    smtp_password: str = ""  # Se lee desde variable de entorno
     smtp_from_name: str = "PAQUETES EL CLUB"
     smtp_from_email: str = "guia@papyrus.com.co"
     
