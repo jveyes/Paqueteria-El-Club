@@ -1,0 +1,29 @@
+# ========================================
+# PAQUETES EL CLUB v3.1 - Configuración Simple AWS
+# ========================================
+
+# Configuración de Base de Datos AWS RDS
+DATABASE_URL=postgresql://jveyes:a?HC!2.*1#?[==:|289qAI=)#V4kDzl$@ls-abe25e9bea57818f0ee32555c0e7b4a10e361535.ctobuhtlkwoj.us-east-1.rds.amazonaws.com:5432/paqueteria
+
+# Configuración de Redis
+REDIS_URL=redis://redis:6379
+
+# Configuración de la Aplicación
+SECRET_KEY=paqueteria_club_v31_aws_secret_key_2025_secure_random_string_12345
+DEBUG=False
+ENVIRONMENT=production
+
+# Configuración de Email (pendiente)
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+
+# Configuración de AWS (pendiente)
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your_s3_bucket
+
+# Configuración de Liwa API (pendiente)
+LIWA_API_KEY=your_liwa_api_key
