@@ -2,7 +2,7 @@
 # PAQUETES EL CLUB v3.1 - Modelo de Anuncio de Paquetes
 # ========================================
 
-from sqlalchemy import Column, String, Text, DateTime, Boolean
+from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -10,6 +10,8 @@ import uuid
 
 from .base import BaseModel
 from ..database.database import Base
+from ..utils.datetime_utils import get_colombia_now
+from ..config import settings
 
 class PackageAnnouncement(BaseModel, Base):
     """Modelo para anuncios de paquetes"""
@@ -28,16 +30,21 @@ class PackageAnnouncement(BaseModel, Base):
     is_processed = Column(Boolean, default=False, nullable=False)
     
     # Timestamps
-    announced_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    announced_at = Column(DateTime, default=get_colombia_now, nullable=False)
     processed_at = Column(DateTime, nullable=True)
-    
-    # Timestamps del modelo base (se generan automáticamente)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_colombia_now, nullable=False)
+    updated_at = Column(DateTime, default=get_colombia_now, onupdate=get_colombia_now, nullable=False)
     
     # Relaciones (opcional)
-    customer_id = Column(UUID(as_uuid=True), nullable=True)
-    package_id = Column(UUID(as_uuid=True), nullable=True)
+    if settings.database_url.startswith("sqlite"):
+        customer_id = Column(String(36), nullable=True)
+        package_id = Column(String(36), nullable=True)
+        created_by_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    else:
+        customer_id = Column(UUID(as_uuid=True), nullable=True)
+        package_id = Column(UUID(as_uuid=True), nullable=True)
+        created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by = relationship("User", back_populates="announcements")
     
     def __repr__(self):
         return f"<PackageAnnouncement {self.guide_number} - {self.customer_name}>"

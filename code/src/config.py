@@ -15,13 +15,13 @@ class Settings(BaseSettings):
     debug: bool = True
     environment: str = "development"
     
-    # Base de Datos
-    database_url: str = "postgresql://paqueteria_user:Paqueteria2025!Secure@postgres:5432/paqueteria"
-    postgres_password: str = "Paqueteria2025!Secure"
-    postgres_user: str = "paqueteria_user"
-    postgres_db: str = "paqueteria"
-    postgres_host: str = "postgres"
-    postgres_port: int = 5432
+    # Base de Datos RDS AWS
+    database_url: str = "postgresql://jveyes:a?HC!2.*1#?[==:|289qAI=)#V4kDzl$@ls-abe25e9bea57818f0ee32555c0e7b4a10e361535.ctobuhtlkwoj.us-east-1.rds.amazonaws.com:5432/paqueteria"
+    postgres_password: Optional[str] = None
+    postgres_user: Optional[str] = None
+    postgres_db: Optional[str] = None
+    postgres_host: Optional[str] = None
+    postgres_port: Optional[int] = None
     
     # Cache Redis
     redis_url: str = "redis://redis:6379/0"
@@ -74,6 +74,12 @@ class Settings(BaseSettings):
     # Configuración de Logs
     log_level: str = "INFO"
     log_file: str = "./logs/app.log"
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # Configuración de autenticación
+    secret_key: str = "paqueteria-secret-key-2025-super-secure-jwt-token-key-for-authentication"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
     
     # Configuración de PWA
     pwa_name: str = "PAQUETES EL CLUB"
@@ -83,8 +89,14 @@ class Settings(BaseSettings):
     pwa_background_color: str = "#FFFFFF"
     
     class Config:
-        env_file = ".env"
+        env_file = "env.development"
         case_sensitive = False
+        extra = "ignore"  # Ignorar variables extra
 
 # Instancia global de configuración
-settings = Settings()
+try:
+    settings = Settings()
+except Exception as e:
+    print(f"Error cargando configuración: {e}")
+    # Usar configuración de desarrollo como fallback
+    from .config_dev import settings

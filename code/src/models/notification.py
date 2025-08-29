@@ -10,6 +10,7 @@ from datetime import datetime
 
 from .base import BaseModel
 from ..database.database import Base
+from ..config import settings
 
 class NotificationType(str, enum.Enum):
     """Tipos de notificación"""
@@ -28,8 +29,12 @@ class Notification(BaseModel, Base):
     """Modelo de notificaciones"""
     __tablename__ = "notifications"
     
-    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    if settings.database_url.startswith("sqlite"):
+        package_id = Column(String(36), ForeignKey("packages.id"), nullable=True)
+        user_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    else:
+        package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=True)
+        user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     notification_type = Column(Enum(NotificationType), nullable=False)
     message = Column(Text, nullable=False)
     status = Column(Enum(NotificationStatus), default=NotificationStatus.PENDING)

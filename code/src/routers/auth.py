@@ -1,348 +1,243 @@
 # ========================================
-# PAQUETES EL CLUB v3.0 - Router de Autenticación
+# PAQUETES EL CLUB v3.1 - Router de Autenticación
 # ========================================
 
-import uuid
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Response
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import Optional
-from jose import JWTError, jwt
+from typing import List
+import uuid
 
 from ..database.database import get_db
-from ..models.user import User, PasswordResetToken
-from ..schemas.auth import ForgotPasswordRequest, ResetPasswordRequest, LoginResponse, LogoutResponse, AuthCheckResponse
-from ..schemas.user import UserCreate, UserResponse, UserUpdate
-from ..utils.helpers import verify_password, get_password_hash
-from ..services.notification_service import NotificationService
-from ..config import settings
-from ..dependencies import create_access_token
-from fastapi.security import OAuth2PasswordBearer
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+from ..models.user import User, UserRole
+from ..schemas.user import (
+    UserCreate, UserUpdate, UserResponse, UserLogin, 
+    UserChangePassword, UserResetPassword, UserRequestReset,
+    TokenResponse, PasswordResetTokenResponse
+)
+from ..services.user_service import UserService
+from ..utils.auth import create_user_token
+from ..dependencies import (
+    get_current_user, get_current_active_user, 
+    get_current_admin_user, get_user_service
+)
 
 router = APIRouter(tags=["authentication"])
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    """Obtener usuario actual desde token"""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudieron validar las credenciales",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
-    """Obtener usuario activo actual"""
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Usuario inactivo")
-    return current_user
-
-@router.post("/register", response_model=UserResponse)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Registrar nuevo usuario"""
-    # Verificar si ya existe un admin
-    existing_admin = db.query(User).filter(User.role == "ADMIN").first()
-    if existing_admin and user_data.role == "ADMIN":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ya existe un administrador en el sistema"
-        )
-    
-    # Verificar si el usuario ya existe
-    existing_user = db.query(User).filter(
-        (User.username == user_data.username) | (User.email == user_data.email)
-    ).first()
-    
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuario o email ya existe"
-        )
-    
-    # Crear nuevo usuario
-    hashed_password = get_password_hash(user_data.password)
-    db_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=hashed_password,
-        first_name=user_data.first_name,
-        last_name=user_data.last_name,
-        phone=user_data.phone,
-        role=user_data.role
-    )
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    return db_user
-
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=TokenResponse)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    response: Response = None,
     db: Session = Depends(get_db)
 ):
-    """Iniciar sesión"""
-    # Buscar usuario por username o email (case insensitive)
-    username_or_email = form_data.username.lower()
-    user = db.query(User).filter(
-        (User.username.ilike(username_or_email)) | (User.email.ilike(username_or_email))
-    ).first()
+    """Iniciar sesión de usuario"""
+    user_service = UserService(db)
     
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    # Autenticar usuario
+    user = user_service.authenticate_user(form_data.username, form_data.password)
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas"
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuario inactivo"
+            detail="Nombre de usuario o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     # Crear token de acceso
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+    access_token = create_user_token(user.id, user.username, user.role.value)
+    
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.from_orm(user)
     )
-    
-    # Configurar cookies de autenticación
-    if response:
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,
-            max_age=1800,  # 30 minutos
-            samesite="lax"
-        )
-        response.set_cookie(
-            key="user_id",
-            value=str(user.id),
-            httponly=True,
-            max_age=1800,
-            samesite="lax"
-        )
-        response.set_cookie(
-            key="user_name",
-            value=user.first_name,
-            httponly=False,
-            max_age=1800,
-            samesite="lax"
-        )
-        response.set_cookie(
-            key="user_role",
-            value=user.role,
-            httponly=False,
-            max_age=1800,
-            samesite="lax"
-        )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "role": user.role
-        }
-    }
 
-@router.post("/logout")
-async def logout(response: Response):
-    """Cerrar sesión"""
-    # Limpiar cookies
-    response.delete_cookie("access_token")
-    response.delete_cookie("user_id")
-    response.delete_cookie("user_name")
-    response.delete_cookie("user_role")
-    
-    return {"message": "Sesión cerrada exitosamente"}
+@router.post("/register", response_model=UserResponse)
+async def register(
+    user_data: UserCreate,
+    user_service: UserService = Depends(get_user_service)
+):
+    """Registrar nuevo usuario (solo admin puede crear usuarios)"""
+    try:
+        user = user_service.create_user(user_data)
+        return UserResponse.from_orm(user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
+async def get_current_user_info(
+    current_user: User = Depends(get_current_active_user)
+):
     """Obtener información del usuario actual"""
-    return current_user
+    return UserResponse.from_orm(current_user)
 
-@router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """Solicitar recuperación de contraseña"""
-    user = db.query(User).filter(User.email == request.email).first()
-    
-    if not user:
-        # Por seguridad, no revelamos si el email existe o no
-        return {
-            "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
-            "email": request.email
-        }
-    
-    if not user.is_active:
-        return {
-            "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
-            "email": request.email
-        }
-    
-    # Generar token único
-    token = str(uuid.uuid4())
-    expires_at = datetime.utcnow() + timedelta(hours=1)
-    
-    # Crear token de reset
-    reset_token = PasswordResetToken(
-        token=token,
-        user_id=user.id,
-        expires_at=expires_at
-    )
-    
-    db.add(reset_token)
-    db.commit()
-    
-    # Enviar email
-    try:
-        notification_service = NotificationService(db)
-        email_sent = await notification_service.send_password_reset_email(user, token)
-        
-        if email_sent:
-            return {
-                "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
-                "email": request.email
-            }
-        else:
-            # Si falla el envío, eliminar el token
-            db.delete(reset_token)
-            db.commit()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error al enviar el email de recuperación"
-            )
-    except Exception as e:
-        # Si falla el envío, eliminar el token
-        db.delete(reset_token)
-        db.commit()
-        # En desarrollo, simular envío exitoso
-        return {
-            "message": "Se ha enviado un enlace de recuperación a tu correo electrónico",
-            "email": request.email
-        }
-
-@router.post("/reset-password")
-async def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
-    """Restablecer contraseña"""
-    # Buscar token válido
-    reset_token = db.query(PasswordResetToken).filter(
-        PasswordResetToken.token == request.token
-    ).first()
-    
-    if not reset_token or not reset_token.is_valid():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token inválido o expirado"
-        )
-    
-    # Validar nueva contraseña
-    if len(request.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La contraseña debe tener al menos 8 caracteres"
-        )
-    
-    # Obtener usuario
-    user = db.query(User).filter(User.id == reset_token.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuario no encontrado"
-        )
-    
-    # Actualizar contraseña
-    user.hashed_password = get_password_hash(request.new_password)
-    
-    # Marcar token como usado
-    reset_token.used = True
-    
-    db.commit()
-    
-    return {
-        "message": "Contraseña actualizada exitosamente"
-    }
-
-@router.put("/profile", response_model=UserResponse)
-async def update_profile(
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
     user_data: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    user_service: UserService = Depends(get_user_service)
 ):
-    """Actualizar perfil del usuario actual"""
-    # Verificar si el username ya existe (excluyendo el usuario actual)
-    if user_data.username != current_user.username:
-        existing_user = db.query(User).filter(User.username == user_data.username).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El nombre de usuario ya existe"
-            )
-    
-    # Verificar si el email ya existe (excluyendo el usuario actual)
-    if user_data.email != current_user.email:
-        existing_email = db.query(User).filter(User.email == user_data.email).first()
-        if existing_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El correo electrónico ya existe"
-            )
-    
-    # Actualizar campos
-    current_user.username = user_data.username
-    current_user.email = user_data.email
-    current_user.first_name = user_data.first_name
-    current_user.last_name = user_data.last_name
-    
-    db.commit()
-    db.refresh(current_user)
-    
-    return current_user
+    """Actualizar información del usuario actual"""
+    try:
+        # No permitir cambiar el rol desde aquí
+        if user_data.role:
+            user_data.role = None
+        
+        updated_user = user_service.update_user(current_user.id, user_data)
+        return UserResponse.from_orm(updated_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.post("/change-password")
 async def change_password(
-    current_password: str = Form(...),
-    new_password: str = Form(...),
+    password_data: UserChangePassword,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    user_service: UserService = Depends(get_user_service)
 ):
     """Cambiar contraseña del usuario actual"""
-    # Verificar contraseña actual
-    if not verify_password(current_password, current_user.hashed_password):
+    try:
+        user_service.change_password(
+            current_user.id,
+            password_data.current_password,
+            password_data.new_password
+        )
+        return {"message": "Contraseña cambiada exitosamente"}
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Contraseña actual incorrecta"
+            detail=str(e)
+        )
+
+@router.post("/request-reset", response_model=PasswordResetTokenResponse)
+async def request_password_reset(
+    reset_data: UserRequestReset,
+    user_service: UserService = Depends(get_user_service),
+    db: Session = Depends(get_db)
+):
+    """Solicitar restablecimiento de contraseña"""
+    reset_token = user_service.create_password_reset_token(reset_data.email)
+    
+    if not reset_token:
+        # No revelar si el email existe o no
+        return PasswordResetTokenResponse(
+            message="Si el email existe, se enviará un enlace de restablecimiento",
+            expires_at=reset_token.expires_at if reset_token else None
         )
     
-    # Validar nueva contraseña
-    if len(new_password) < 8:
+    # Enviar email con el token
+    try:
+        from ..services.notification_service import NotificationService
+        notification_service = NotificationService(db)
+        
+        # Obtener el usuario
+        user = user_service.get_user_by_email(reset_data.email)
+        if user:
+            await notification_service.send_password_reset_email(user, reset_token.token)
+            
+        return PasswordResetTokenResponse(
+            message="Se ha enviado un enlace de restablecimiento a tu correo electrónico",
+            expires_at=reset_token.expires_at
+        )
+    except Exception as e:
+        # Log del error pero no revelar detalles al usuario
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error enviando email de reset: {e}")
+        
+        return PasswordResetTokenResponse(
+            message="Si el email existe, se enviará un enlace de restablecimiento",
+            expires_at=reset_token.expires_at
+        )
+
+@router.post("/reset-password")
+async def reset_password(
+    reset_data: UserResetPassword,
+    user_service: UserService = Depends(get_user_service)
+):
+    """Restablecer contraseña usando token"""
+    try:
+        user_service.reset_password(reset_data.token, reset_data.new_password)
+        return {"message": "Contraseña restablecida exitosamente"}
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La nueva contraseña debe tener al menos 8 caracteres"
+            detail=str(e)
         )
-    
-    # Actualizar contraseña
-    current_user.hashed_password = get_password_hash(new_password)
-    db.commit()
-    
-    return {"message": "Contraseña cambiada exitosamente"}
+
+@router.post("/logout")
+async def logout():
+    """Cerrar sesión (el token se invalida en el cliente)"""
+    return {"message": "Sesión cerrada exitosamente"}
+
+# Rutas de administración de usuarios (solo admin)
+
+@router.get("/users", response_model=List[UserResponse])
+async def list_users(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_admin_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    """Listar todos los usuarios (solo admin)"""
+    users = user_service.get_all_users(skip=skip, limit=limit)
+    return [UserResponse.from_orm(user) for user in users]
+
+@router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(
+    user_id: uuid.UUID,
+    current_user: User = Depends(get_current_admin_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    """Obtener usuario específico (solo admin)"""
+    user = user_service.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    return UserResponse.from_orm(user)
+
+@router.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: uuid.UUID,
+    user_data: UserUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    """Actualizar usuario (solo admin)"""
+    try:
+        updated_user = user_service.update_user(user_id, user_data)
+        return UserResponse.from_orm(updated_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: uuid.UUID,
+    current_user: User = Depends(get_current_admin_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    """Eliminar usuario (solo admin)"""
+    try:
+        user_service.delete_user(user_id)
+        return {"message": "Usuario eliminado exitosamente"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/users/stats")
+async def get_user_stats(
+    current_user: User = Depends(get_current_admin_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    """Obtener estadísticas de usuarios (solo admin)"""
+    return user_service.get_user_stats()

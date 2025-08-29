@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from passlib.context import CryptContext
 from ..config import settings
+from .datetime_utils import get_colombia_now
 
 # Configuración de hash de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -23,14 +24,14 @@ def get_password_hash(password: str) -> str:
 
 def generate_tracking_number() -> str:
     """Generar número de tracking único"""
-    date_str = datetime.now().strftime('%Y%m%d')
+    date_str = get_colombia_now().strftime('%Y%m%d')
     unique_id = str(uuid.uuid4())[:8].upper()
     return f"PAP{date_str}{unique_id}"
 
 def generate_unique_filename(original_filename: str) -> str:
     """Generar nombre de archivo único"""
     name, ext = os.path.splitext(original_filename)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = get_colombia_now().strftime('%Y%m%d_%H%M%S')
     unique_id = str(uuid.uuid4())[:8]
     return f"{name}_{timestamp}_{unique_id}{ext}"
 
@@ -129,5 +130,5 @@ def get_environment_info() -> Dict[str, Any]:
         "environment": settings.environment,
         "version": settings.app_version,
         "debug": settings.debug,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": get_colombia_now().isoformat()
     }

@@ -31,21 +31,21 @@ from datetime import datetime
 
 # Importar configuración y utilidades
 from .config import settings
-from .utils.exceptions import PaqueteriaException, handle_paqueteria_exception
+from .utils.exceptions import PaqueteriaException
 
 # Importar routers
 from .routers import auth, packages, customers, rates, notifications, messages, files, admin, announcements
-from .database.database import engine, get_db
+from .database.database import engine, get_db, init_db
 from .models import base
-from .dependencies import get_current_active_user, verify_token
+from .dependencies import get_current_active_user
+from .utils.auth import verify_token
 
 # Configurar logging optimizado
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(settings.log_file),
-        logging.StreamHandler()
+        logging.StreamHandler()  # Solo usar StreamHandler por ahora
     ]
 )
 
@@ -56,10 +56,9 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Iniciando PAQUETES EL CLUB v3.1...")
     
-    # Crear tablas de la base de datos
+    # Inicializar base de datos con timezone configurado
     try:
-        base.Base.metadata.create_all(bind=engine)
-        logger.info("Base de datos inicializada correctamente")
+        init_db()
     except Exception as e:
         logger.error(f"Error al inicializar la base de datos: {e}")
     
@@ -132,14 +131,26 @@ async def get_auth_context_from_request(request: Request):
         token = request.cookies.get("access_token")
         if token:
             # Verificar el token usando la función de dependencias
-            username = verify_token(token)
-            if username:
-                return get_auth_context(request, is_authenticated=True, user_name=username)
+            payload = verify_token(token)
+            if payload and payload.get("username"):
+                return get_auth_context(request, is_authenticated=True, user_name=payload.get("username"))
     except Exception:
         # En caso de error, retornar contexto no autenticado
         pass
     
     return get_auth_context(request, is_authenticated=False)
+
+# ========================================
+# MANEJO DE EXCEPCIONES PERSONALIZADAS
+# ========================================
+
+def handle_paqueteria_exception(request: Request, exc: PaqueteriaException):
+    """Maneja las excepciones personalizadas de la aplicación"""
+    logger.error(f"PaqueteriaException: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error interno del servidor"}
+    )
 
 # Manejo de excepciones personalizadas
 app.add_exception_handler(PaqueteriaException, handle_paqueteria_exception)
@@ -166,11 +177,11 @@ async def check_auth(request: Request):
         # Intentar obtener el token desde las cookies
         token = request.cookies.get("access_token")
         if token:
-            username = verify_token(token)
-            if username:
+            payload = verify_token(token)
+            if payload and payload.get("username"):
                 return {
                     "is_authenticated": True,
-                    "user_name": username
+                    "user_name": payload.get("username")
                 }
     except Exception:
         pass
@@ -269,6 +280,11 @@ async def help_page(request: Request):
     """Página de ayuda - Pública"""
     context = get_auth_context(request, is_authenticated=False)
     return templates.TemplateResponse("customers/help.html", context)
+
+@app.get("/test-search")
+async def test_search_page(request: Request):
+    """Página de prueba de búsqueda - Pública"""
+    return templates.TemplateResponse("test_search.html", context={"request": request})
 
 @app.get("/cookies")
 async def cookies_page(request: Request):
@@ -380,7 +396,17 @@ async def packages_page(request: Request):
     if not context["is_authenticated"]:
         return RedirectResponse(url="/auth/login?redirect=/packages", status_code=302)
     
-    return templates.TemplateResponse("packages/packages.html", context)
+    return templates.TemplateResponse("packages/list.html", context)
+
+@app.get("/packages/detail")
+async def package_detail_page(request: Request):
+    """Página de detalle del paquete - Solo para usuarios autenticados"""
+    context = await get_auth_context_from_request(request)
+    
+    if not context["is_authenticated"]:
+        return RedirectResponse(url="/auth/login?redirect=/packages/detail", status_code=302)
+    
+    return templates.TemplateResponse("packages/detail.html", context)
 
 @app.get("/customers-management")
 async def customers_management_page(request: Request):

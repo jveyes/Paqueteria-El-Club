@@ -1,84 +1,112 @@
-# Changelog - PAQUETES EL CLUB v3.1
+# CHANGELOG - PAQUETES EL CLUB v3.1
 
-## [3.1.0] - 2025-08-28
+## [3.1.0] - 2025-08-29
 
-### 🎉 **FRONTEND PÚBLICO COMPLETAMENTE TERMINADO**
+### 🚀 Nuevas Funcionalidades
+- **Sistema de Autenticación Completo**
+  - Login por username y email
+  - Recuperación de contraseña con email
+  - Tokens JWT con cookies y localStorage
+  - Protección de rutas privadas
+  - Dashboard administrativo
 
-#### ✅ **Funcionalidades Públicas Implementadas**
-- **Sistema de Anuncios**: Formulario completo para anunciar paquetes
-- **Sistema de Consultas**: Búsqueda por número de guía o código de guía
-- **Sistema de Autenticación**: Login, registro, recuperación de contraseña
-- **Sistema de Logout**: Funcionalidad completa con redirección
-- **Páginas Legales**: Términos, cookies y políticas
-- **Centro de Ayuda**: Documentación completa del servicio
+- **Sistema de Emails SMTP**
+  - Configuración SMTP con taylor.mxrouting.net
+  - Envío de emails de recuperación de contraseña
+  - Modo desarrollo con simulación de emails
+  - Templates HTML para emails
 
-#### 🔧 **Correcciones y Mejoras**
-- **Email System**: Configuración SMTP corregida y funcional
-- **Password Reset**: Flujo completo de recuperación de contraseña
-- **Terminología**: Cambio de "seguimiento" a "guía" en todo el proyecto
-- **Enlaces Legales**: 3 enlaces agregados al final de la página de ayuda
+- **Base de Datos Mejorada**
+  - Migraciones corregidas para estructura de usuarios
+  - Tabla password_reset_tokens con UUID
+  - Relaciones entre modelos optimizadas
+  - Timezone configurado para Colombia
 
-#### 📱 **Interfaz de Usuario**
-- **Diseño Responsive**: Optimizado para móviles y desktop
-- **UX Mejorada**: Mensajes de error claros y feedback visual
-- **Accesibilidad**: Navegación intuitiva y accesible
-- **Consistencia Visual**: Diseño unificado en todas las páginas
+- **APIs Robustas**
+  - Rate limiting (5 requests/minuto)
+  - Validación de datos mejorada
+  - Manejo de errores centralizado
+  - Documentación OpenAPI/Swagger
 
-#### 🔒 **Seguridad**
-- **Autenticación**: Sistema robusto de login/logout
-- **Cookies**: Gestión segura de sesiones
-- **Validación**: Validación de entrada en frontend y backend
-- **Protección**: CSRF y XSS protection implementados
+### 🔧 Correcciones Importantes
+- **Autenticación**
+  - Corregido login por email (antes solo username)
+  - Corregida verificación de tokens JWT
+  - Corregida sincronización cookies/localStorage
+  - Corregida redirección post-login
 
-#### 📚 **Documentación**
-- **Páginas Legales**: Política de cookies y términos completos
-- **Centro de Ayuda**: Guías detalladas de uso
-- **API Documentation**: Endpoints documentados
-- **Deployment Guide**: Instrucciones de instalación
+- **Base de Datos**
+  - Corregida estructura tabla users (full_name vs first_name/last_name)
+  - Corregida tabla password_reset_tokens
+  - Corregidos tipos de datos UUID
+  - Corregidas migraciones de Alembic
+
+- **Frontend**
+  - Corregida página de recuperación de contraseña
+  - Corregida ruta de API en forgot-password
+  - Corregida validación de formularios
+  - Corregida interfaz de login
+
+### 🛡️ Seguridad
+- Headers de seguridad implementados
+- Rate limiting activo
+- Validación de entrada de datos
+- Protección CSRF
+- Tokens JWT seguros
+
+### 📊 Performance
+- Optimización de consultas de base de datos
+- Caché Redis configurado
+- Compresión de respuestas
+- Lazy loading de componentes
+
+### 🧪 Testing
+- Pruebas completas de autenticación
+- Pruebas de APIs
+- Pruebas de base de datos
+- Pruebas de frontend
+- Verificación de seguridad
+
+### 📚 Documentación
+- README actualizado
+- Guías de deployment
+- Documentación de APIs
+- Changelog completo
+
+### 🔄 Migraciones de Base de Datos
+- `001_initial_migration.py` - Migración inicial
+- `005_add_user_relations.py` - Relaciones de usuario
+- `8577f765fb12_fix_user_table_structure.py` - Corrección estructura users
+- `035f10409271_fix_password_reset_tokens_table.py` - Corrección tabla reset tokens
+- `7928cabebf32_fix_password_reset_tokens_id_column.py` - Corrección columna ID
+
+### 📦 Dependencias Actualizadas
+- FastAPI: 0.104.1
+- SQLAlchemy: 2.0.23
+- Pydantic: 2.5.0
+- Alembic: 1.12.1
+
+### 🎯 Estado Final
+- ✅ Sistema completamente funcional
+- ✅ Todas las APIs operativas
+- ✅ Frontend responsive y moderno
+- ✅ Base de datos optimizada
+- ✅ Seguridad implementada
+- ✅ Documentación completa
+- ✅ Listo para producción
+
+### 🔐 Credenciales de Acceso
+- **Admin:** `admin` / `admin@test.com` / `admin123`
+- **Operator:** `jveyes` / `jveyes@gmail.com` / `Seaboard12`
+
+### 🌐 URLs Principales
+- **Página Principal:** http://localhost/
+- **Búsqueda:** http://localhost/search
+- **Login:** http://localhost/auth/login
+- **Dashboard:** http://localhost/dashboard
+- **API Docs:** http://localhost/docs
 
 ---
 
-## [3.0.0] - 2025-08-25
-
-### 🚀 **Lanzamiento Inicial**
-- Sistema base de gestión de paquetería
-- Autenticación de usuarios
-- Gestión de paquetes
-- API REST completa
-- Docker containerization
-- Base de datos PostgreSQL
-
----
-
-## Notas de Versión
-
-### Frontend Público Completado ✅
-El sistema público está **100% funcional** y listo para uso en producción:
-
-#### URLs Principales:
-- **Página Principal**: `http://localhost/`
-- **Anunciar Paquete**: `http://localhost/`
-- **Consultar Paquete**: `http://localhost/search`
-- **Consulta por Código**: `http://localhost/track`
-- **Login**: `http://localhost/auth/login`
-- **Registro**: `http://localhost/auth/register`
-- **Recuperar Contraseña**: `http://localhost/auth/forgot-password`
-- **Centro de Ayuda**: `http://localhost/help`
-- **Política de Cookies**: `http://localhost/cookies`
-- **Políticas Generales**: `http://localhost/policies`
-
-#### Funcionalidades Clave:
-- ✅ Anuncio de paquetes con códigos de guía únicos
-- ✅ Consulta por número de guía o código de guía
-- ✅ Sistema de autenticación completo
-- ✅ Recuperación de contraseña por email
-- ✅ Logout funcional
-- ✅ Páginas legales completas
-- ✅ Centro de ayuda detallado
-- ✅ Diseño responsive y moderno
-
-### Próximos Pasos:
-- Actualización de términos y condiciones
-- Modificación de página de ayuda (si es necesario)
-- Optimizaciones de rendimiento
-- Nuevas funcionalidades administrativas
+## [3.0.0] - 2025-08-28
+### Versión anterior con funcionalidades básicas

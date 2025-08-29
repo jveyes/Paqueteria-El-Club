@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test de Búsqueda de Paquetes</h1>
+    
+    <div>
+        <label for="query">Número de guía o código:</label>
+        <input type="text" id="query" value="12345" placeholder="Ej: 12345">
+        <button onclick="searchPackage()">Buscar</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+        function searchPackage() {
+            const query = document.getElementById('query').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = 'Buscando...';
+            
+            fetch(`/api/announcements/search/package?query=${encodeURIComponent(query)}`)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Paquete no encontrado');
+                        }
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>Paquete encontrado:</h3>
+                            <p><strong>Cliente:</strong> ${data.announcement.customer_name}</p>
+                            <p><strong>Teléfono:</strong> ${data.announcement.phone_number}</p>
+                            <p><strong>Número de guía:</strong> ${data.announcement.guide_number}</p>
+                            <p><strong>Código de tracking:</strong> ${data.announcement.tracking_code}</p>
+                            <p><strong>Estado actual:</strong> ${data.current_status}</p>
+                            <p><strong>Historial:</strong> ${data.history.length} eventos</p>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>Error:</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Buscar automáticamente al cargar la página
+        window.onload = function() {
+            searchPackage();
+        };
+    </script>
+</body>
+</html>

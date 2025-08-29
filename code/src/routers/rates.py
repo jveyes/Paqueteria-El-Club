@@ -10,7 +10,8 @@ from datetime import datetime
 from ..database.database import get_db
 from ..models.rate import Rate, RateType
 from ..schemas.rate import RateCreate, RateResponse, RateUpdate, RateCalculation
-from ..dependencies import get_current_active_user, require_admin
+from ..dependencies import get_current_active_user, get_current_admin_user
+from ..utils.datetime_utils import get_colombia_now
 
 router = APIRouter()
 
@@ -27,7 +28,7 @@ async def list_rates(
 async def create_rate(
     rate_data: RateCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_admin)
+    current_user = Depends(get_current_admin_user)
 ):
     """Crear nueva tarifa"""
     # Desactivar tarifas anteriores del mismo tipo
@@ -38,7 +39,7 @@ async def create_rate(
     
     for rate in existing_rates:
         rate.is_active = False
-        rate.valid_to = datetime.now()
+        rate.valid_to = get_colombia_now()
     
     # Crear nueva tarifa
     db_rate = Rate(**rate_data.dict())

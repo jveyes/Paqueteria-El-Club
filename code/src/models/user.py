@@ -1,68 +1,95 @@
 # ========================================
-# PAQUETES EL CLUB v3.0 - Modelo de Usuario
+# PAQUETES EL CLUB v3.1 - Modelo de Usuario
 # ========================================
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, String, Boolean, Enum, Text, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime, timedelta
+from datetime import datetime
 import uuid
 import enum
 
+from .base import BaseModel
 from ..database.database import Base
-from .message import Message
-from .file import File
+from ..utils.datetime_utils import get_colombia_now
+from ..config import settings
 
 class UserRole(str, enum.Enum):
-    """Roles de usuario disponibles"""
-    ADMIN = "ADMIN"
-    OPERATOR = "OPERATOR"
-    USER = "USER"
+    """Roles de usuario del sistema"""
+    ADMIN = "admin"
+    OPERATOR = "operator"
 
-class User(Base):
+class User(BaseModel, Base):
     """Modelo de usuario del sistema"""
     __tablename__ = "users"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    # Información básica
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
-    hashed_password = Column("password_hash", String(255), nullable=False)
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    phone = Column(String(20), nullable=True)
-    role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
+    full_name = Column(String(100), nullable=False)
+    
+    # Autenticación
+    hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    permissions = Column(Text, nullable=True)
-    last_login = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    
+    # Rol y permisos
+    role = Column(Enum(UserRole), default=UserRole.OPERATOR, nullable=False)
+    
+    # Información adicional
+    phone = Column(String(20), nullable=True)
+    notes = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=get_colombia_now, nullable=False)
+    updated_at = Column(DateTime, default=get_colombia_now, onupdate=get_colombia_now, nullable=False)
     
     # Relaciones
+    announcements = relationship("PackageAnnouncement", back_populates="created_by")
+    packages = relationship("Package", back_populates="created_by")
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user")
+    files = relationship("File", back_populates="uploaded_by_user")
     notifications = relationship("Notification", back_populates="user")
     messages = relationship("Message", back_populates="sender")
-    files = relationship("File", back_populates="uploaded_by_user")
     
     def __repr__(self):
-        return f"<User {self.username}>"
-
-class PasswordResetToken(Base):
-    """Modelo para tokens de restablecimiento de contraseña"""
-    __tablename__ = "password_reset_tokens"
+        return f"<User {self.username} - {self.role}>"
     
-    id = Column(Integer, primary_key=True, index=True)
-    token = Column(String(255), unique=True, nullable=False, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    used = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    @property
+    def is_admin(self):
+        """Verifica si el usuario es administrador"""
+        return self.role == UserRole.ADMIN
     
-    # Relación con el usuario
-    user = relationship("User", backref="password_reset_tokens")
+    @property
+    def is_operator(self):
+        """Verifica si el usuario es operador"""
+        return self.role == UserRole.OPERATOR
     
-    def is_expired(self) -> bool:
-        """Verificar si el token ha expirado"""
-        return datetime.utcnow() > self.expires_at
+    def can_manage_users(self):
+        """Verifica si el usuario puede gestionar otros usuarios"""
+        return self.is_admin
     
-    def is_valid(self) -> bool:
-        """Verificar si el token es válido (no expirado y no usado)"""
-        return not self.is_expired() and not self.used
+    def can_view_all_packages(self):
+        """Verifica si el usuario puede ver todos los paquetes"""
+        return self.is_admin or self.is_operator
+    
+    def __repr__(self):
+        return f"<User {self.username} - {self.role}>"
+    
+    @property
+    def is_admin(self):
+        """Verifica si el usuario es administrador"""
+        return self.role == UserRole.ADMIN
+    
+    @property
+    def is_operator(self):
+        """Verifica si el usuario es operador"""
+        return self.role == UserRole.OPERATOR
+    
+    def can_manage_users(self):
+        """Verifica si el usuario puede gestionar otros usuarios"""
+        return self.is_admin
+    
+    def can_view_all_packages(self):
+        """Verifica si el usuario puede ver todos los paquetes"""
+        return self.is_admin or self.is_operator

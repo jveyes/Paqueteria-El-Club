@@ -1,38 +1,12 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: paqueteria_v31_postgres
-    environment:
-      POSTGRES_DB: paqueteria
-      POSTGRES_USER: paqueteria_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # Optimizaciones para 1GB RAM
-      POSTGRES_SHARED_BUFFERS: 128MB
-      POSTGRES_EFFECTIVE_CACHE_SIZE: 256MB
-      POSTGRES_WORK_MEM: 4MB
-      POSTGRES_MAINTENANCE_WORK_MEM: 32MB
-      POSTGRES_MAX_CONNECTIONS: 50
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
-      - ../backups:/var/lib/postgresql/backups
-    ports:
-      - "5432:5432"
-    networks:
-      - paqueteria_network
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
   redis:
     image: redis:7.0-alpine
     container_name: paqueteria_v31_redis
     command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --maxclients 50
+    environment:
+      TZ: America/Bogota
     volumes:
       - redis_data:/data
     ports:
@@ -51,17 +25,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: paqueteria_v31_app
+    env_file:
+      - env.development
     environment:
-      - DATABASE_URL=postgresql://paqueteria_user:${POSTGRES_PASSWORD}@postgres:5432/paqueteria
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
-      - SMTP_HOST=taylor.mxrouting.net
-      - SMTP_PORT=587
-      - SMTP_USER=guia@papyrus.com.co
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM_NAME=PAQUETES EL CLUB
-      - LIWA_API_KEY=${LIWA_API_KEY}
-      - LIWA_PHONE_NUMBER=${LIWA_PHONE_NUMBER}
+      - TZ=America/Bogota
       # Optimizaciones para desarrollo
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
@@ -85,7 +52,6 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      - postgres
       - redis
     networks:
       - paqueteria_network
@@ -102,14 +68,10 @@ services:
       dockerfile: Dockerfile
     container_name: paqueteria_v31_celery_worker
     command: celery -A src.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - env.development
     environment:
-      - DATABASE_URL=postgresql://paqueteria_user:${POSTGRES_PASSWORD}@postgres:5432/paqueteria
-      - REDIS_URL=redis://redis:6379/0
-      - SMTP_HOST=taylor.mxrouting.net
-      - SMTP_PORT=587
-      - SMTP_USER=guia@papyrus.com.co
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - LIWA_API_KEY=${LIWA_API_KEY}
+      - TZ=America/Bogota
       - ENVIRONMENT=development
     volumes:
       - ./src:/app/src
@@ -127,7 +89,6 @@ services:
       - ./requirements.txt:/app/requirements.txt
       - ./requirements-dev.txt:/app/requirements-dev.txt
     depends_on:
-      - postgres
       - redis
     networks:
       - paqueteria_network
@@ -147,6 +108,8 @@ services:
   nginx:
     image: nginx:alpine
     container_name: paqueteria_v31_nginx
+    environment:
+      TZ: America/Bogota
     ports:
       - "80:80"
       - "443:443"
@@ -168,7 +131,6 @@ services:
           cpus: '0.2'
 
 volumes:
-  postgres_data:
   redis_data:
 
 networks:

@@ -14,13 +14,14 @@ from ..models.package import Package, PackageStatus, PackageType
 from ..models.customer import Customer
 from ..models.rate import Rate
 from ..schemas.package import PackageCreate, PackageResponse, PackageUpdate, PackageAnnounce, PackageTracking
-from ..dependencies import get_current_active_user, require_operator
+from ..dependencies import get_current_active_user, get_current_operator_user
+from ..utils.datetime_utils import get_colombia_now, format_colombia_datetime
 
 router = APIRouter()
 
 def generate_tracking_number() -> str:
     """Generar número de tracking único"""
-    return f"PAP{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
+    return f"PAP{get_colombia_now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
 
 @router.post("/announce", response_model=PackageResponse)
 async def announce_package(
@@ -48,7 +49,7 @@ async def announce_package(
         delivery_cost=delivery_cost,
         total_cost=total_cost,
         status=PackageStatus.ANUNCIADO,
-        announced_at=datetime.now()
+        announced_at=get_colombia_now()
     )
     
     db.add(db_package)
@@ -71,12 +72,12 @@ async def announce_package(
     
     return db_package
 
-@router.get("/{tracking_number}", response_model=PackageResponse)
+@router.get("/{tracking_number}")
 async def get_package_by_tracking(
     tracking_number: str,
     db: Session = Depends(get_db)
 ):
-    """Obtener paquete por número de tracking"""
+    """Obtener paquete por número de tracking con timestamps formateados"""
     package = db.query(Package).filter(Package.tracking_number == tracking_number).first()
     
     if not package:
@@ -85,7 +86,26 @@ async def get_package_by_tracking(
             detail="Paquete no encontrado"
         )
     
-    return package
+    # Retornar con timestamps formateados en Colombia
+    return {
+        "id": str(package.id),
+        "tracking_number": package.tracking_number,
+        "customer_name": package.customer_name,
+        "customer_phone": package.customer_phone,
+        "status": package.status.value,
+        "package_type": package.package_type.value if package.package_type else None,
+        "package_condition": package.package_condition.value if package.package_condition else None,
+        "storage_cost": str(package.storage_cost) if package.storage_cost else "0.00",
+        "delivery_cost": str(package.delivery_cost) if package.delivery_cost else "0.00",
+        "total_cost": str(package.total_cost) if package.total_cost else "0.00",
+        "observations": package.observations,
+        "announced_at": format_colombia_datetime(package.announced_at, "%Y-%m-%d %H:%M:%S") if package.announced_at else None,
+        "announced_at_formatted": format_colombia_datetime(package.announced_at, "%A, %d de %B de %Y, %I:%M %p") if package.announced_at else None,
+        "received_at": format_colombia_datetime(package.received_at, "%Y-%m-%d %H:%M:%S") if package.received_at else None,
+        "delivered_at": format_colombia_datetime(package.delivered_at, "%Y-%m-%d %H:%M:%S") if package.delivered_at else None,
+        "created_at": format_colombia_datetime(package.created_at, "%Y-%m-%d %H:%M:%S") if package.created_at else None,
+        "updated_at": format_colombia_datetime(package.updated_at, "%Y-%m-%d %H:%M:%S") if package.updated_at else None
+    }
 
 @router.get("/", response_model=List[PackageResponse])
 async def list_packages(
@@ -121,7 +141,7 @@ async def list_packages(
 async def receive_package(
     package_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(require_operator)
+    current_user = Depends(get_current_operator_user)
 ):
     """Recibir paquete en instalaciones"""
     package = db.query(Package).filter(Package.id == package_id).first()
@@ -140,7 +160,7 @@ async def receive_package(
     
     # Actualizar estado
     package.status = PackageStatus.RECIBIDO
-    package.received_at = datetime.now()
+    package.received_at = get_colombia_now()
     db.commit()
     db.refresh(package)
     
@@ -150,7 +170,7 @@ async def receive_package(
 async def deliver_package(
     package_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(require_operator)
+    current_user = Depends(get_current_operator_user)
 ):
     """Entregar paquete al cliente"""
     package = db.query(Package).filter(Package.id == package_id).first()
@@ -169,7 +189,7 @@ async def deliver_package(
     
     # Actualizar estado
     package.status = PackageStatus.ENTREGADO
-    package.delivered_at = datetime.now()
+    package.delivered_at = get_colombia_now()
     db.commit()
     db.refresh(package)
     
@@ -180,7 +200,7 @@ async def cancel_package(
     package_id: uuid.UUID,
     reason: str = Query(..., description="Motivo de cancelación"),
     db: Session = Depends(get_db),
-    current_user = Depends(require_operator)
+    current_user = Depends(get_current_operator_user)
 ):
     """Cancelar paquete"""
     package = db.query(Package).filter(Package.id == package_id).first()

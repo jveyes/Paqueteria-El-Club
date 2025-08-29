@@ -12,6 +12,7 @@ from .base import BaseModel
 from ..database.database import Base
 from .customer import Customer
 from .file import File
+from ..config import settings
 
 class PackageStatus(str, enum.Enum):
     """Estados del paquete"""
@@ -53,8 +54,14 @@ class Package(BaseModel, Base):
     delivered_at = Column(DateTime, nullable=True)
     
     # Relaciones
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True)
+    if settings.database_url.startswith("sqlite"):
+        customer_id = Column(String(36), ForeignKey("customers.id"), nullable=True)
+        created_by_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    else:
+        customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True)
+        created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     customer = relationship("Customer", back_populates="packages")
+    created_by = relationship("User", back_populates="packages")
     notifications = relationship("Notification", back_populates="package")
     files = relationship("File", back_populates="package")
     

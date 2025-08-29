@@ -6,6 +6,7 @@ from pydantic import BaseModel, validator
 from typing import Optional
 from datetime import datetime
 from .base import BaseSchemaWithTimestamps
+from ..utils.security import validate_customer_name, validate_phone_number, validate_guide_number, is_safe_input
 
 class AnnouncementBase(BaseModel):
     """Esquema base de anuncio"""
@@ -17,27 +18,39 @@ class AnnouncementCreate(AnnouncementBase):
     """Esquema para crear anuncio"""
     @validator('customer_name')
     def validate_customer_name(cls, v):
-        if not v.strip():
-            raise ValueError('El nombre del cliente es requerido')
-        if len(v.strip()) < 2:
-            raise ValueError('El nombre debe tener al menos 2 caracteres')
-        return v.strip()
+        # Verificar si es seguro
+        if not is_safe_input(v):
+            raise ValueError('El nombre contiene caracteres no permitidos')
+        
+        # Validar y sanitizar usando la función de seguridad
+        try:
+            return validate_customer_name(v)
+        except ValueError as e:
+            raise ValueError(str(e))
     
     @validator('phone_number')
     def validate_phone_number(cls, v):
-        # Remover caracteres no numéricos
-        digits = ''.join(filter(str.isdigit, v))
-        if len(digits) < 7:
-            raise ValueError('El teléfono debe tener al menos 7 dígitos')
-        return v
+        # Verificar si es seguro
+        if not is_safe_input(v):
+            raise ValueError('El teléfono contiene caracteres no permitidos')
+        
+        # Validar y limpiar usando la función de seguridad
+        try:
+            return validate_phone_number(v)
+        except ValueError as e:
+            raise ValueError(str(e))
     
     @validator('guide_number')
     def validate_guide_number(cls, v):
-        if not v.strip():
-            raise ValueError('El número de guía es requerido')
-        if len(v.strip()) < 3:
-            raise ValueError('El número de guía debe tener al menos 3 caracteres')
-        return v.strip().upper()
+        # Verificar si es seguro
+        if not is_safe_input(v):
+            raise ValueError('El número de guía contiene caracteres no permitidos')
+        
+        # Validar y limpiar usando la función de seguridad
+        try:
+            return validate_guide_number(v)
+        except ValueError as e:
+            raise ValueError(str(e))
 
 class AnnouncementUpdate(BaseModel):
     """Esquema para actualizar anuncio"""
@@ -47,6 +60,39 @@ class AnnouncementUpdate(BaseModel):
     tracking_code: Optional[str] = None
     is_active: Optional[bool] = None
     is_processed: Optional[bool] = None
+    
+    @validator('customer_name')
+    def validate_customer_name(cls, v):
+        if v is not None:
+            if not is_safe_input(v):
+                raise ValueError('El nombre contiene caracteres no permitidos')
+            try:
+                return validate_customer_name(v)
+            except ValueError as e:
+                raise ValueError(str(e))
+        return v
+    
+    @validator('phone_number')
+    def validate_phone_number(cls, v):
+        if v is not None:
+            if not is_safe_input(v):
+                raise ValueError('El teléfono contiene caracteres no permitidos')
+            try:
+                return validate_phone_number(v)
+            except ValueError as e:
+                raise ValueError(str(e))
+        return v
+    
+    @validator('guide_number')
+    def validate_guide_number(cls, v):
+        if v is not None:
+            if not is_safe_input(v):
+                raise ValueError('El número de guía contiene caracteres no permitidos')
+            try:
+                return validate_guide_number(v)
+            except ValueError as e:
+                raise ValueError(str(e))
+        return v
 
 class AnnouncementResponse(BaseSchemaWithTimestamps, AnnouncementBase):
     """Esquema de respuesta de anuncio"""

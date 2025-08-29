@@ -168,7 +168,8 @@ document.getElementById('trackingForm').addEventListener('submit', function(e) {
         document.getElementById('resultPhoneNumber').textContent = data.phone_number;
         document.getElementById('resultGuideNumber').textContent = data.guide_number;
         document.getElementById('resultTrackingCode').textContent = data.tracking_code;
-        document.getElementById('resultAnnouncedAt').textContent = new Date(data.announced_at).toLocaleDateString('es-ES');
+        // Usar la fecha formateada en Colombia desde el backend
+        document.getElementById('resultAnnouncedAt').textContent = data.announced_at_formatted || data.announced_at;
         
         // Mostrar estado con color
         const statusElement = document.getElementById('resultStatus');

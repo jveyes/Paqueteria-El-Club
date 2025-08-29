@@ -10,6 +10,7 @@ from datetime import datetime
 
 from .base import BaseModel
 from ..database.database import Base
+from ..config import settings
 
 class MessageType(str, enum.Enum):
     """Tipos de mensaje"""
@@ -21,7 +22,10 @@ class Message(BaseModel, Base):
     """Modelo de mensajes internos"""
     __tablename__ = "messages"
     
-    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    if settings.database_url.startswith("sqlite"):
+        sender_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    else:
+        sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     subject = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
     message_type = Column(Enum(MessageType), default=MessageType.INTERNAL)

@@ -1,36 +1,76 @@
 # ========================================
-# PAQUETES EL CLUB v3.0 - Configuración de Base de Datos
+# PAQUETES EL CLUB v3.1 - Configuración de Base de Datos
 # ========================================
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
+from ..config import settings
+import logging
 
-# Configuración de la base de datos
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://paqueteria_user:Paqueteria2025!Secure@postgres:5432/paqueteria"
-)
+logger = logging.getLogger(__name__)
 
-# Crear engine de SQLAlchemy
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    echo=False  # Cambiar a True para debug
-)
+# Crear URL de conexión con configuración de timezone
+database_url = settings.database_url
 
-# Crear sesión local
+# Crear engine con configuración específica según el tipo de base de datos
+if database_url.startswith("sqlite"):
+    # Configuración para SQLite
+    engine = create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_recycle=300
+    )
+else:
+    # Configuración para PostgreSQL
+    engine = create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        connect_args={
+            "options": "-c timezone=America/Bogota"  # Configurar timezone de Colombia
+        }
+    )
+
+# Configurar timezone en cada conexión (solo para PostgreSQL)
+if not database_url.startswith("sqlite"):
+    @event.listens_for(engine, "connect")
+    def set_timezone(dbapi_connection, connection_record):
+        """Configurar timezone de Colombia en cada conexión"""
+        cursor = dbapi_connection.cursor()
+        cursor.execute("SET timezone = 'America/Bogota';")
+        cursor.close()
+
+# Crear sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base para los modelos
+# Base para modelos
 Base = declarative_base()
 
 def get_db():
-    """Dependency para obtener la sesión de base de datos"""
+    """Obtener sesión de base de datos"""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+def init_db():
+    """Inicializar base de datos"""
+    try:
+        # Crear todas las tablas
+        Base.metadata.create_all(bind=engine)
+        logger.info("Base de datos inicializada correctamente")
+        
+        # Verificar timezone solo para PostgreSQL
+        if not database_url.startswith("sqlite"):
+            db = SessionLocal()
+            result = db.execute(text("SHOW timezone;")).fetchone()
+            logger.info(f"Timezone configurado: {result[0]}")
+            db.close()
+        else:
+            logger.info("Base de datos SQLite inicializada")
+        
+    except Exception as e:
+        logger.error(f"Error inicializando base de datos: {e}")
+        raise

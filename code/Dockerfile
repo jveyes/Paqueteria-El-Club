@@ -19,7 +19,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONHASHSEED=random \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    TZ=America/Bogota
 
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
@@ -27,7 +28,11 @@ RUN apt-get update && apt-get install -y \
     g++ \
     libpq-dev \
     curl \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+# Configurar zona horaria de Colombia
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Crear usuario no-root para seguridad
 RUN groupadd -r appuser && useradd -r -g appuser -m -s /bin/bash appuser

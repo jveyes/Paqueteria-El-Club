@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Zona Horaria Colombia</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🌍 Prueba de Conversión de Zona Horaria Colombia</h1>
+    
+    <div class="test-case info">
+        <h3>📋 Información de la Prueba</h3>
+        <p><strong>Fecha UTC de prueba:</strong> 2025-08-29T03:11:11.362283</p>
+        <p><strong>Hora esperada en Colombia:</strong> 22:11 (10:11 PM) del día anterior</p>
+        <p><strong>Diferencia:</strong> UTC-5 (Colombia está 5 horas atrás de UTC)</p>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Cargar las utilidades de zona horaria
+        const script = document.createElement('script');
+        script.src = '/static/js/colombia-timezone.js';
+        script.onload = function() {
+            runTests();
+        };
+        document.head.appendChild(script);
+
+        function runTests() {
+            const resultsDiv = document.getElementById('results');
+            const testDate = '2025-08-29T03:11:11.362283';
+            
+            resultsDiv.innerHTML = '';
+
+            // Test 1: Conversión básica
+            const test1 = document.createElement('div');
+            test1.className = 'test-case';
+            test1.innerHTML = `
+                <h3>🧪 Test 1: Conversión Básica</h3>
+                <p><strong>Fecha UTC:</strong> ${testDate}</p>
+                <p><strong>Fecha Colombia:</strong> ${window.ColombiaTimezone.formatDateTime(testDate)}</p>
+                <p><strong>Estado:</strong> <span style="color: green;">✅ Completado</span></p>
+            `;
+            resultsDiv.appendChild(test1);
+
+            // Test 2: Debug detallado
+            const test2 = document.createElement('div');
+            test2.className = 'test-case';
+            test2.innerHTML = `
+                <h3>🔍 Test 2: Debug Detallado</h3>
+                <pre id="debugOutput"></pre>
+            `;
+            resultsDiv.appendChild(test2);
+
+            // Ejecutar debug
+            console.log('Ejecutando debug...');
+            window.ColombiaTimezone.debugTimezone(testDate);
+            
+            // Capturar output del debug
+            setTimeout(() => {
+                const debugOutput = document.getElementById('debugOutput');
+                debugOutput.textContent = 'Debug ejecutado. Revisa la consola del navegador para más detalles.';
+            }, 100);
+
+            // Test 3: Verificación de offset
+            const test3 = document.createElement('div');
+            test3.className = 'test-case';
+            const originalDate = new Date(testDate);
+            const colombiaDate = window.ColombiaTimezone.convertUTC(testDate);
+            const offsetDiff = (colombiaDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60);
+            
+            test3.innerHTML = `
+                <h3>⏰ Test 3: Verificación de Offset</h3>
+                <p><strong>Diferencia calculada:</strong> ${offsetDiff} horas</p>
+                <p><strong>Offset esperado:</strong> -5 horas</p>
+                <p><strong>Estado:</strong> <span style="color: ${Math.abs(offsetDiff + 5) < 0.1 ? 'green' : 'red'};">${Math.abs(offsetDiff + 5) < 0.1 ? '✅ Correcto' : '❌ Incorrecto'}</span></p>
+            `;
+            resultsDiv.appendChild(test3);
+
+            // Test 4: Formato de hora
+            const test4 = document.createElement('div');
+            test4.className = 'test-case';
+            test4.innerHTML = `
+                <h3>🕐 Test 4: Formato de Hora</h3>
+                <p><strong>Solo hora:</strong> ${window.ColombiaTimezone.formatTimeOnly(testDate)}</p>
+                <p><strong>Solo fecha:</strong> ${window.ColombiaTimezone.formatDateOnly(testDate)}</p>
+                <p><strong>Fecha y hora:</strong> ${window.ColombiaTimezone.formatDateTime(testDate)}</p>
+                <p><strong>Estado:</strong> <span style="color: green;">✅ Completado</span></p>
+            `;
+            resultsDiv.appendChild(test4);
+
+            // Test 5: Fecha actual
+            const test5 = document.createElement('div');
+            test5.className = 'test-case';
+            test5.innerHTML = `
+                <h3>📅 Test 5: Fecha Actual en Colombia</h3>
+                <p><strong>Fecha actual Colombia:</strong> ${window.ColombiaTimezone.getNow().toLocaleString('es-CO')}</p>
+                <p><strong>Estado:</strong> <span style="color: green;">✅ Completado</span></p>
+            `;
+            resultsDiv.appendChild(test5);
+        }
+    </script>
+</body>
+</html>

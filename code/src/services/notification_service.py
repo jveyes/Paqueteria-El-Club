@@ -13,8 +13,10 @@ import logging
 
 from ..models.notification import Notification, NotificationType, NotificationStatus
 from ..models.package import Package
-from ..models.user import User, PasswordResetToken
+from ..models.user import User
+from ..models.password_reset import PasswordResetToken
 from ..utils.exceptions import NotificationException
+from ..utils.datetime_utils import get_colombia_now
 from ..config import settings
 
 # Configurar logging
@@ -46,7 +48,7 @@ class NotificationService:
         try:
             await self._send_sms(package.customer_phone, message)
             notification.status = NotificationStatus.SENT
-            notification.sent_at = datetime.now()
+            notification.sent_at = get_colombia_now()
         except Exception as e:
             notification.status = NotificationStatus.FAILED
             raise NotificationException("SMS", str(e))
@@ -73,7 +75,7 @@ class NotificationService:
         try:
             await self._send_sms(package.customer_phone, message)
             notification.status = NotificationStatus.SENT
-            notification.sent_at = datetime.now()
+            notification.sent_at = get_colombia_now()
         except Exception as e:
             notification.status = NotificationStatus.FAILED
             raise NotificationException("SMS", str(e))
@@ -100,7 +102,7 @@ class NotificationService:
         try:
             await self._send_sms(package.customer_phone, message)
             notification.status = NotificationStatus.SENT
-            notification.sent_at = datetime.now()
+            notification.sent_at = get_colombia_now()
         except Exception as e:
             notification.status = NotificationStatus.FAILED
             raise NotificationException("SMS", str(e))
@@ -127,7 +129,7 @@ class NotificationService:
         try:
             await self._send_sms(package.customer_phone, message)
             notification.status = NotificationStatus.SENT
-            notification.sent_at = datetime.now()
+            notification.sent_at = get_colombia_now()
         except Exception as e:
             notification.status = NotificationStatus.FAILED
             raise NotificationException("SMS", str(e))
@@ -158,7 +160,7 @@ class NotificationService:
         try:
             await self._send_email(to_email, subject, message)
             notification.status = NotificationStatus.SENT
-            notification.sent_at = datetime.now()
+            notification.sent_at = get_colombia_now()
         except Exception as e:
             notification.status = NotificationStatus.FAILED
             raise NotificationException("EMAIL", str(e))
@@ -300,7 +302,7 @@ class NotificationService:
                     </div>
                     
                     <div class="content">
-                        <div class="greeting">¡Hola {user.first_name}!</div>
+                        <div class="greeting">¡Hola {user.full_name}!</div>
                         
                         <div class="message">
                             Has solicitado restablecer tu contraseña en <strong>PAQUETES EL CLUB</strong>, nuestro sistema de gestión de paquetería.

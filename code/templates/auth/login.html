@@ -205,10 +205,17 @@
             // Login exitoso
             console.log('Login exitoso:', data);
             
-            // Guardar token en localStorage para el frontend
+            // Guardar token en localStorage y cookies para el frontend
             if (data.access_token) {
                 localStorage.setItem('access_token', data.access_token);
                 localStorage.setItem('user_info', JSON.stringify(data.user));
+                
+                // También guardar en cookies para que el backend pueda acceder
+                document.cookie = `access_token=${data.access_token}; path=/; max-age=1800; SameSite=Lax`;
+                if (data.user) {
+                    document.cookie = `user_name=${data.user.username}; path=/; max-age=1800; SameSite=Lax`;
+                    document.cookie = `user_role=${data.user.role}; path=/; max-age=1800; SameSite=Lax`;
+                }
             }
             
             // Simular login en el header (si existe la función)

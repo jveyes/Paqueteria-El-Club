@@ -18,6 +18,7 @@ from ..utils.exceptions import (
 )
 from ..utils.helpers import generate_tracking_number
 from ..utils.validators import validate_package_dimensions, validate_package_weight
+from ..utils.datetime_utils import get_colombia_now
 from .rate_service import RateService
 from .notification_service import NotificationService
 
@@ -61,7 +62,7 @@ class PackageService:
             delivery_cost=costs["delivery_cost"],
             total_cost=costs["total_cost"],
             status=PackageStatus.ANUNCIADO,
-            announced_at=datetime.now()
+            announced_at=get_colombia_now()
         )
         
         self.db.add(db_package)
@@ -139,7 +140,7 @@ class PackageService:
         
         # Actualizar estado
         package.status = PackageStatus.RECIBIDO
-        package.received_at = datetime.now()
+        package.received_at = get_colombia_now()
         self.db.commit()
         self.db.refresh(package)
         
@@ -165,7 +166,7 @@ class PackageService:
         
         # Actualizar estado
         package.status = PackageStatus.ENTREGADO
-        package.delivered_at = datetime.now()
+        package.delivered_at = get_colombia_now()
         self.db.commit()
         self.db.refresh(package)
         
@@ -217,7 +218,7 @@ class PackageService:
         ).filter(Package.status == PackageStatus.ENTREGADO).scalar() or 0
         
         # Paquetes entregados hoy
-        today = datetime.now().date()
+        today = get_colombia_now().date()
         delivered_today = self.db.query(Package).filter(
             and_(
                 Package.status == PackageStatus.ENTREGADO,

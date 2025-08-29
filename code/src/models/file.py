@@ -9,13 +9,18 @@ from datetime import datetime
 
 from .base import BaseModel
 from ..database.database import Base
+from ..config import settings
 
 class File(BaseModel, Base):
     """Modelo de archivos subidos"""
     __tablename__ = "files"
     
-    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=True)
-    uploaded_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    if settings.database_url.startswith("sqlite"):
+        package_id = Column(String(36), ForeignKey("packages.id"), nullable=True)
+        uploaded_by_user_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    else:
+        package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=True)
+        uploaded_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     filename = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer, nullable=False)
