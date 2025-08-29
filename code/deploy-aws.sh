@@ -213,7 +213,7 @@ verify_config() {
     required_files=(
         "docker-compose.aws.yml"
         "env.aws"
-        "nginx/conf.d/nginx-papyrus.conf"
+        "nginx/conf.d/default.conf"
         "database/init.sql"
     )
     
