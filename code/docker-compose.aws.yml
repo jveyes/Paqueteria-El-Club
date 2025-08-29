@@ -1,6 +1,153 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: paqueteria_v31_postgres
+    environment:
+      POSTGRES_DB: paqueteria
+      POSTGRES_USER: paqueteria_user
+      POSTGRES_PASSWORD: Paqueteria2025!Secure
+      TZ: America/Bogota
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paqueteria_user -d paqueteria"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  redis:
+    image: redis:7-alpine
+    container_name: paqueteria_v31_redis
+    command: redis-server --requirepass Redis2025!Secure
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    environment:
+      TZ: America/Bogota
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_app
+    environment:
+      - DATABASE_URL=postgresql://paqueteria_user:Paqueteria2025!Secure@postgres:5432/paqueteria
+      - REDIS_URL=redis://:Redis2025!Secure@redis:6379/0
+      - SECRET_KEY=paqueteria-secret-key-2025-super-secure-jwt-token-key-for-authentication-production
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - LIWA_API_KEY=${LIWA_API_KEY}
+      - LIWA_PHONE_NUMBER=${LIWA_PHONE_NUMBER}
+      - TZ=America/Bogota
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - ENVIRONMENT=production
+      - DEBUG=False
+    volumes:
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./database:/app/database
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paqueteria_v31_celery_worker
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql://paqueteria_user:Paqueteria2025!Secure@postgres:5432/paqueteria
+      - REDIS_URL=redis://:Redis2025!Secure@redis:6379/0
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - LIWA_API_KEY=${LIWA_API_KEY}
+      - TZ=America/Bogota
+      - ENVIRONMENT=production
+    volumes:
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./database:/app/database
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./docs:/app/docs
+    networks:
+      - paqueteria_network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "celery", "-A", "src.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   nginx:
     image: nginx:alpine
     container_name: paqueteria_v31_nginx
@@ -25,118 +172,9 @@ services:
     environment:
       TZ: America/Bogota
 
-  redis:
-    image: redis:7-alpine
-    container_name: paqueteria_v31_redis
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6380:6379"
-    networks:
-      - paqueteria_network
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.25'
-    environment:
-      TZ: America/Bogota
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: paqueteria_v31_app
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
-      - LIWA_API_KEY=${LIWA_API_KEY}
-      - LIWA_PHONE_NUMBER=${LIWA_PHONE_NUMBER}
-      - TZ=America/Bogota
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - ENVIRONMENT=production
-    volumes:
-      - ./src:/app/src
-      - ./templates:/app/templates
-      - ./static:/app/static
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-      - ./database:/app/database
-      - ./scripts:/app/scripts
-      - ./tests:/app/tests
-      - ./docs:/app/docs
-    networks:
-      - paqueteria_network
-    restart: unless-stopped
-    depends_on:
-      - redis
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1.0'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  celery_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: paqueteria_v31_celery_worker
-    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - LIWA_API_KEY=${LIWA_API_KEY}
-      - TZ=America/Bogota
-      - ENVIRONMENT=production
-    volumes:
-      - ./src:/app/src
-      - ./templates:/app/templates
-      - ./static:/app/static
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-      - ./database:/app/database
-      - ./scripts:/app/scripts
-      - ./tests:/app/tests
-      - ./docs:/app/docs
-    networks:
-      - paqueteria_network
-    restart: unless-stopped
-    depends_on:
-      - redis
-      - app
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD", "celery", "-A", "src.celery_app", "inspect", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
 volumes:
+  postgres_data:
+    driver: local
   redis_data:
     driver: local
 

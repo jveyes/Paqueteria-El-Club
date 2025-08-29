@@ -1,14 +1,10 @@
 #!/bin/bash
 
 # ========================================
-# Script de Deployment para AWS
-# PAQUETES EL CLUB v3.1
+# SCRIPT DE DESPLIEGUE AWS - PAQUETES EL CLUB v3.1
 # ========================================
 
-set -e
-
-echo "🚀 INICIANDO DEPLOYMENT EN AWS"
-echo "=================================="
+set -e  # Salir en caso de error
 
 # Colores para output
 RED='\033[0;31m'
@@ -17,113 +13,267 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Función para imprimir mensajes
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Función para logging
+log() {
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+success() {
+    echo -e "${GREEN}✅ $1${NC}"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+error() {
+    echo -e "${RED}❌ $1${NC}"
 }
 
-# Verificar si estamos en el directorio correcto
-if [ ! -f "docker-compose.aws.yml" ]; then
-    print_error "No se encontró docker-compose.aws.yml. Ejecuta este script desde el directorio code/"
-    exit 1
-fi
+# Configuración
+PROJECT_DIR="/home/ubuntu/Paquetes/code"
+BACKUP_DIR="/home/ubuntu/Paquetes/backups"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_NAME="paqueteria_backup_${TIMESTAMP}.tar.gz"
 
-# Verificar si existe el archivo de variables de entorno
-if [ ! -f "env.aws" ]; then
-    print_error "No se encontró env.aws. Asegúrate de que el archivo existe."
-    exit 1
-fi
+# Función para crear backup
+create_backup() {
+    log "Creando backup de la versión actual..."
+    
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup de volúmenes Docker
+    if docker volume ls | grep -q "code_postgres_data"; then
+        docker run --rm -v code_postgres_data:/data -v "$BACKUP_DIR":/backup alpine tar czf "/backup/postgres_data_${TIMESTAMP}.tar.gz" -C /data .
+        success "Backup de PostgreSQL creado"
+    fi
+    
+    if docker volume ls | grep -q "code_redis_data"; then
+        docker run --rm -v code_redis_data:/data -v "$BACKUP_DIR":/backup alpine tar czf "/backup/redis_data_${TIMESTAMP}.tar.gz" -C /data .
+        success "Backup de Redis creado"
+    fi
+    
+    # Backup de archivos de configuración
+    tar czf "$BACKUP_DIR/$BACKUP_NAME" \
+        --exclude='.git' \
+        --exclude='node_modules' \
+        --exclude='__pycache__' \
+        --exclude='*.pyc' \
+        --exclude='logs/*' \
+        --exclude='uploads/*' \
+        -C "$PROJECT_DIR" .
+    
+    success "Backup completo creado: $BACKUP_NAME"
+}
 
-print_status "Verificando configuración..."
+# Función para verificar estado de servicios
+check_services() {
+    log "Verificando estado de servicios..."
+    
+    # Verificar que Docker esté corriendo
+    if ! docker info > /dev/null 2>&1; then
+        error "Docker no está corriendo"
+        return 1
+    fi
+    
+    # Verificar que docker-compose esté disponible
+    if ! command -v docker-compose > /dev/null 2>&1; then
+        error "docker-compose no está instalado"
+        return 1
+    fi
+    
+    success "Servicios básicos verificados"
+}
 
-# Copiar archivo de variables de entorno
-if [ -f "env.aws" ]; then
-    cp env.aws .env
-    print_success "Archivo de variables de entorno copiado"
-else
-    print_warning "Archivo env.aws no encontrado. Usando .env existente"
-fi
+# Función para detener servicios
+stop_services() {
+    log "Deteniendo servicios actuales..."
+    
+    cd "$PROJECT_DIR"
+    
+    if docker-compose -f docker-compose.aws.yml ps | grep -q "Up"; then
+        docker-compose -f docker-compose.aws.yml down
+        success "Servicios detenidos"
+    else
+        warning "No hay servicios corriendo"
+    fi
+}
 
-# Verificar que Docker esté instalado
-if ! command -v docker &> /dev/null; then
-    print_error "Docker no está instalado. Instala Docker primero."
-    exit 1
-fi
+# Función para limpiar recursos no utilizados
+cleanup_docker() {
+    log "Limpiando recursos Docker no utilizados..."
+    
+    # Limpiar contenedores detenidos
+    docker container prune -f
+    
+    # Limpiar imágenes no utilizadas
+    docker image prune -f
+    
+    # Limpiar redes no utilizadas
+    docker network prune -f
+    
+    success "Limpieza completada"
+}
 
-# Verificar que Docker Compose esté instalado
-if ! command -v docker-compose &> /dev/null; then
-    print_error "Docker Compose no está instalado. Instala Docker Compose primero."
-    exit 1
-fi
+# Función para actualizar código desde GitHub
+update_code() {
+    log "Actualizando código desde GitHub..."
+    
+    cd "$PROJECT_DIR"
+    
+    # Verificar si hay cambios pendientes
+    if git status --porcelain | grep -q .; then
+        warning "Hay cambios locales no committeados"
+        git stash
+    fi
+    
+    # Hacer pull del código
+    git fetch origin
+    git reset --hard origin/main
+    
+    success "Código actualizado desde GitHub"
+}
 
-print_success "Docker y Docker Compose verificados"
+# Función para verificar archivos de configuración
+verify_config() {
+    log "Verificando archivos de configuración..."
+    
+    cd "$PROJECT_DIR"
+    
+    # Verificar archivos críticos
+    required_files=(
+        "docker-compose.aws.yml"
+        "env.aws"
+        "nginx/conf.d/nginx-papyrus.conf"
+        "database/init.sql"
+    )
+    
+    for file in "${required_files[@]}"; do
+        if [[ ! -f "$file" ]]; then
+            error "Archivo requerido no encontrado: $file"
+            return 1
+        fi
+    done
+    
+    success "Archivos de configuración verificados"
+}
 
-# Detener servicios existentes si están corriendo
-print_status "Deteniendo servicios existentes..."
-docker-compose -f docker-compose.aws.yml down --remove-orphans 2>/dev/null || true
+# Función para construir y levantar servicios
+start_services() {
+    log "Construyendo y levantando servicios..."
+    
+    cd "$PROJECT_DIR"
+    
+    # Construir imágenes
+    docker-compose -f docker-compose.aws.yml build --no-cache
+    
+    # Levantar servicios
+    docker-compose -f docker-compose.aws.yml up -d
+    
+    success "Servicios levantados"
+}
 
-# Limpiar imágenes y contenedores no utilizados
-print_status "Limpiando recursos no utilizados..."
-docker system prune -f
+# Función para health checks
+health_checks() {
+    log "Realizando health checks..."
+    
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        log "Health check intento $attempt/$max_attempts"
+        
+        # Verificar que todos los contenedores estén corriendo
+        if docker-compose -f docker-compose.aws.yml ps | grep -q "Up"; then
+            # Verificar health endpoint
+            if curl -f -s http://localhost/health > /dev/null 2>&1; then
+                success "Health check exitoso"
+                return 0
+            fi
+        fi
+        
+        sleep 10
+        ((attempt++))
+    done
+    
+    error "Health check falló después de $max_attempts intentos"
+    return 1
+}
 
-# Construir y levantar servicios
-print_status "Construyendo y levantando servicios..."
-docker-compose -f docker-compose.aws.yml up -d --build
+# Función para verificar logs
+check_logs() {
+    log "Verificando logs de servicios..."
+    
+    cd "$PROJECT_DIR"
+    
+    # Verificar logs de la aplicación
+    if docker-compose -f docker-compose.aws.yml logs app | grep -q "ERROR"; then
+        warning "Errores encontrados en logs de la aplicación"
+        docker-compose -f docker-compose.aws.yml logs app --tail=20
+    else
+        success "Logs de aplicación sin errores críticos"
+    fi
+    
+    # Verificar logs de nginx
+    if docker-compose -f docker-compose.aws.yml logs nginx | grep -q "ERROR"; then
+        warning "Errores encontrados en logs de nginx"
+        docker-compose -f docker-compose.aws.yml logs nginx --tail=10
+    else
+        success "Logs de nginx sin errores críticos"
+    fi
+}
 
-# Esperar a que los servicios estén listos
-print_status "Esperando a que los servicios estén listos..."
-sleep 30
+# Función para mostrar estado final
+show_status() {
+    log "Estado final de servicios:"
+    
+    cd "$PROJECT_DIR"
+    docker-compose -f docker-compose.aws.yml ps
+    
+    echo ""
+    log "URLs de acceso:"
+    echo "  🌐 HTTP:  http://guia.papyrus.com.co"
+    echo "  🔒 HTTPS: https://guia.papyrus.com.co"
+    echo "  📊 Health: https://guia.papyrus.com.co/health"
+    echo "  📚 API Docs: https://guia.papyrus.com.co/docs"
+}
 
-# Verificar estado de los servicios
-print_status "Verificando estado de los servicios..."
-docker-compose -f docker-compose.aws.yml ps
+# Función principal
+main() {
+    echo "=========================================="
+    echo "🚀 DESPLIEGUE AWS - PAQUETES EL CLUB v3.1"
+    echo "=========================================="
+    echo ""
+    
+    # Verificar que estamos en el directorio correcto
+    if [[ ! -d "$PROJECT_DIR" ]]; then
+        error "Directorio del proyecto no encontrado: $PROJECT_DIR"
+        exit 1
+    fi
+    
+    # Ejecutar pasos de despliegue
+    check_services || exit 1
+    create_backup
+    stop_services
+    cleanup_docker
+    update_code
+    verify_config || exit 1
+    start_services
+    health_checks || exit 1
+    check_logs
+    show_status
+    
+    echo ""
+    success "🎉 Despliegue completado exitosamente!"
+    echo ""
+    echo "📋 Resumen:"
+    echo "  • Backup creado: $BACKUP_NAME"
+    echo "  • Código actualizado desde GitHub"
+    echo "  • Servicios reiniciados"
+    echo "  • Health checks pasados"
+    echo ""
+    echo "🔗 Acceso: https://guia.papyrus.com.co"
+}
 
-# Verificar logs de la aplicación
-print_status "Verificando logs de la aplicación..."
-docker-compose -f docker-compose.aws.yml logs app --tail=20
-
-# Verificar health check
-print_status "Verificando health check..."
-sleep 10
-
-# Verificar que la aplicación responda
-if curl -f http://localhost/health > /dev/null 2>&1; then
-    print_success "Health check exitoso"
-else
-    print_warning "Health check falló. Revisa los logs."
-fi
-
-# Mostrar información final
-echo ""
-echo "🎉 DEPLOYMENT COMPLETADO"
-echo "========================"
-echo ""
-print_success "Servicios desplegados:"
-echo "  - Nginx: http://localhost"
-echo "  - API: http://localhost/docs"
-echo "  - Health: http://localhost/health"
-echo ""
-print_success "Comandos útiles:"
-echo "  - Ver logs: docker-compose -f docker-compose.aws.yml logs -f"
-echo "  - Ver estado: docker-compose -f docker-compose.aws.yml ps"
-echo "  - Detener: docker-compose -f docker-compose.aws.yml down"
-echo "  - Reiniciar: docker-compose -f docker-compose.aws.yml restart"
-echo ""
-
-# Verificar puertos en uso
-print_status "Puertos en uso:"
-netstat -tlnp | grep -E ':(80|443|8000|6380)' || true
-
-print_success "¡Deployment completado exitosamente!"
+# Ejecutar función principal
+main "$@"
